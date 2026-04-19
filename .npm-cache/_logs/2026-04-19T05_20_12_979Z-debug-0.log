@@ -1,0 +1,42 @@
+0 verbose cli /usr/local/bin/node /usr/local/lib/node_modules/npm/bin/npm-cli.js
+1 info using npm@10.9.2
+2 info using node@v22.16.0
+3 silly config load:file:/usr/local/lib/node_modules/npm/npmrc
+4 silly config load:file:/Users/captaindoo/Desktop/JAVASCRIPT/ShiftPlaner/.npmrc
+5 silly config load:file:/Users/captaindoo/.npmrc
+6 silly config load:file:/usr/local/etc/npmrc
+7 verbose title npm exec create-next-app@latest next-migration --ts --eslint --app --src-dir --use-npm --import-alias @/* --no-tailwind --yes
+8 verbose argv "exec" "--" "create-next-app@latest" "next-migration" "--ts" "--eslint" "--app" "--src-dir" "--use-npm" "--import-alias" "@/*" "--no-tailwind" "--yes"
+9 verbose logfile logs-max:10 dir:/Users/captaindoo/Desktop/JAVASCRIPT/ShiftPlaner/.npm-cache/_logs/2026-04-19T05_20_12_979Z-
+10 verbose logfile /Users/captaindoo/Desktop/JAVASCRIPT/ShiftPlaner/.npm-cache/_logs/2026-04-19T05_20_12_979Z-debug-0.log
+11 silly logfile done cleaning log files
+12 silly packumentCache heap:2197815296 maxSize:549453824 maxEntrySize:274726912
+13 http fetch GET 200 https://registry.npmjs.org/npm 137ms
+14 http fetch GET 200 https://registry.npmjs.org/create-next-app 210ms (cache miss)
+15 silly packumentCache heap:2197815296 maxSize:549453824 maxEntrySize:274726912
+16 silly packumentCache heap:2197815296 maxSize:549453824 maxEntrySize:274726912
+17 warn exec The following package was not found and will be installed: create-next-app@16.2.4
+18 silly idealTree buildDeps
+19 silly fetch manifest create-next-app@16.2.4
+20 silly packumentCache full:https://registry.npmjs.org/create-next-app cache-miss
+21 http fetch GET 200 https://registry.npmjs.org/create-next-app 169ms (cache miss)
+22 silly packumentCache full:https://registry.npmjs.org/create-next-app set size:undefined disposed:false
+23 silly placeDep ROOT create-next-app@16.2.4 OK for:  want: 16.2.4
+24 silly reify moves {}
+25 silly audit bulk request { 'create-next-app': [ '16.2.4' ] }
+26 http cache create-next-app@https://registry.npmjs.org/create-next-app/-/create-next-app-16.2.4.tgz 0ms (cache hit)
+27 silly tarball no local data for create-next-app@https://registry.npmjs.org/create-next-app/-/create-next-app-16.2.4.tgz. Extracting by manifest.
+28 http fetch GET 200 https://registry.npmjs.org/create-next-app/-/create-next-app-16.2.4.tgz 82ms (cache miss)
+29 http fetch POST 200 https://registry.npmjs.org/-/npm/v1/security/advisories/bulk 190ms
+30 silly audit report {}
+31 verbose cwd /Users/captaindoo/Desktop/JAVASCRIPT/ShiftPlaner
+32 verbose os Darwin 23.4.0
+33 verbose node v22.16.0
+34 verbose npm  v10.9.2
+35 notice
+35 notice New major version of npm available! 10.9.2 -> 11.12.1
+35 notice Changelog: https://github.com/npm/cli/releases/tag/v11.12.1
+35 notice To update run: npm install -g npm@11.12.1
+35 notice  { force: true, [Symbol(proc-log.meta)]: true }
+36 verbose exit 0
+37 info ok

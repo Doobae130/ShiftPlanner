@@ -1,0 +1,4025 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Restaurant Shift Planner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #fbfbfa;
+    --surface: #ffffff;
+    --border: #ececea;
+    --border-strong: #d9d9d6;
+    --border-day: #c8c8c4;
+    --text: #2f2f2c;
+    --text-muted: #8a8a85;
+    --text-faint: #b4b4ae;
+    --hover: #f5f5f3;
+    --accent: #2f2f2c;
+    --off-hours: #f8f8f6;
+
+    --c1-bg: #fde8d7;  --c1-bar: #c67a3b;
+    --c2-bg: #dfe7d9;  --c2-bar: #6b8f5a;
+    --c3-bg: #d9e3ec;  --c3-bar: #4a7ba0;
+    --c4-bg: #ead9e4;  --c4-bar: #955a82;
+    --c5-bg: #f0e4c7;  --c5-bar: #b09345;
+    --c6-bg: #e2dcef;  --c6-bar: #7a6aa5;
+
+    --row-h: 44px;
+    --label-w: 200px;
+    --header-h: 80px;
+    --print-scale: 1;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', -apple-system, sans-serif;
+    font-size: 14px;
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+  }
+
+  .app { display: flex; flex-direction: column; height: 100vh; }
+
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 28px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    flex-shrink: 0;
+    gap: 20px;
+  }
+
+  .title-group { display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 1; }
+  .title-row { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+
+  .title {
+    font-family: 'Fraunces', serif;
+    font-size: 22px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    outline: none;
+    padding: 2px 6px;
+    border-radius: 4px;
+    cursor: text;
+    transition: background .12s;
+    min-width: 60px;
+    white-space: nowrap;
+  }
+
+  .title:hover, .title:focus { background: var(--hover); }
+
+  .subtitle {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-style: italic;
+    font-family: 'Fraunces', serif;
+  }
+
+  .date-range {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  .print-week {
+    display: none;
+    font-size: 12px;
+    color: var(--text-muted);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .print-sheet {
+    display: none;
+  }
+
+  .print-sheet-title {
+    font-family: 'Fraunces', serif;
+    font-size: 20px;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    margin-bottom: 2px;
+  }
+
+  .print-sheet-week {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+  }
+
+  .print-grid {
+    display: grid;
+    grid-template-rows: repeat(7, minmax(0, 1fr));
+    gap: 4px;
+  }
+
+  .print-day-card {
+    border: 1px solid var(--border-strong);
+    border-radius: 6px;
+    padding: 3px 5px 3px;
+    background: #fff;
+    break-inside: avoid;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .print-day-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 2px;
+    padding-bottom: 2px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .print-day-name {
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    font-weight: 700;
+  }
+
+  .print-day-date {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--text);
+  }
+
+  .print-day-targets {
+    margin-left: 10px;
+    display: inline-flex;
+    gap: 10px;
+    align-items: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 8px;
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
+
+  .print-day-targets strong {
+    color: var(--text);
+    font-weight: 700;
+  }
+
+  .print-hours {
+    position: relative;
+    display: grid;
+    grid-template-columns: 74px 1fr;
+    align-items: end;
+    gap: 6px;
+    margin-bottom: 1px;
+  }
+
+  .print-hours-label {
+    font-size: 7px;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 700;
+  }
+
+  .print-hours-strip {
+    display: grid;
+    gap: 0;
+    border-left: 1px solid var(--border);
+    border-top: 1px solid var(--border);
+  }
+
+  .print-hour {
+    min-width: 0;
+    border-right: 1px solid var(--border);
+    padding: 0 1px 1px;
+    font-size: 5px;
+    color: var(--text-faint);
+    font-family: 'JetBrains Mono', monospace;
+    text-align: center;
+  }
+
+  .print-row {
+    display: grid;
+    grid-template-columns: 74px 1fr;
+    gap: 6px;
+    align-items: center;
+    margin-bottom: 1px;
+  }
+
+  .print-row-name {
+    font-size: 8px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.1;
+  }
+
+  .print-row-track {
+    position: relative;
+    height: 11px;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    background:
+      repeating-linear-gradient(
+        to right,
+        #fff 0,
+        #fff calc(12.5% - 1px),
+        #ececea calc(12.5% - 1px),
+        #ececea 12.5%
+      );
+    overflow: hidden;
+  }
+
+  .print-shift-block {
+    position: absolute;
+    top: 1px;
+    bottom: 1px;
+    border-radius: 4px;
+    padding: 0 3px;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-size: 5px;
+    font-weight: 600;
+    line-height: 1;
+  }
+
+  .print-shift-block + .print-shift-block {
+    margin-left: 1px;
+  }
+
+  .print-empty {
+    display: none;
+  }
+
+  .date-input {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--text);
+    padding: 3px 6px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background .12s, border-color .12s;
+  }
+
+  .date-input:hover { background: var(--hover); }
+  .date-input:focus {
+    outline: none;
+    background: var(--hover);
+    border-color: var(--border-strong);
+  }
+
+  .date-arrow { color: var(--text-faint); font-size: 11px; }
+
+  .toolbar { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
+
+  .view-switch {
+    display: inline-flex;
+    padding: 3px;
+    gap: 3px;
+    border: 1px solid var(--border-strong);
+    border-radius: 8px;
+    background: var(--surface);
+  }
+
+  .view-switch .btn {
+    padding: 5px 10px;
+    border: none;
+    background: transparent;
+  }
+
+  .view-switch .btn.active {
+    background: var(--accent);
+    color: white;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    border-radius: 6px;
+    font-size: 13px;
+    color: var(--text);
+    cursor: pointer;
+    transition: background .12s, border-color .12s;
+    font-family: inherit;
+  }
+
+  .btn:hover { background: var(--hover); }
+
+  .btn-primary {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+  }
+
+  .btn-primary:hover { background: #1a1a18; }
+  .btn svg { width: 14px; height: 14px; }
+
+  .menu-wrap {
+    position: relative;
+    display: inline-flex;
+  }
+
+  .menu-wrap.open .btn {
+    background: var(--hover);
+    border-color: var(--text);
+  }
+
+  .menu-caret {
+    width: 10px;
+    height: 10px;
+    transition: transform .12s;
+  }
+
+  .menu-wrap.open .menu-caret {
+    transform: rotate(180deg);
+  }
+
+  .menu-panel {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    min-width: 230px;
+    display: none;
+    flex-direction: column;
+    padding: 6px;
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+    box-shadow: 0 12px 32px rgba(0,0,0,0.12);
+    z-index: 220;
+  }
+
+  .menu-wrap.open .menu-panel {
+    display: flex;
+  }
+
+  .menu-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 9px 10px;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text);
+    font: inherit;
+    font-size: 13px;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .menu-item:hover {
+    background: var(--hover);
+  }
+
+  .menu-item svg {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+  }
+
+  .menu-divider {
+    height: 1px;
+    margin: 6px 4px;
+    background: var(--border);
+  }
+
+  .menu-note {
+    padding: 4px 10px 2px;
+    font-size: 11px;
+    color: var(--text-muted);
+    font-family: 'JetBrains Mono', monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    border-radius: 6px;
+    color: var(--text);
+    cursor: pointer;
+    transition: background .12s;
+  }
+
+  .icon-btn:hover { background: var(--hover); }
+  .icon-btn svg { width: 15px; height: 15px; }
+
+  .stats {
+    display: flex;
+    gap: 20px;
+    font-size: 12px;
+    color: var(--text-muted);
+    padding-right: 14px;
+    border-right: 1px solid var(--border);
+    margin-right: 6px;
+  }
+
+  .stats strong {
+    color: var(--text);
+    font-weight: 600;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .zoom-indicator {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #2f2f2c;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    z-index: 100;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.2);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .2s;
+  }
+
+  .zoom-indicator.visible { opacity: 1; }
+
+  .timeline-wrap {
+    flex: 1;
+    overflow: auto;
+    background: var(--surface);
+    position: relative;
+  }
+
+  .timeline { display: inline-block; min-width: 100%; position: relative; }
+
+  .time-header {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    display: flex;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    height: var(--header-h);
+  }
+
+  .corner {
+    position: sticky;
+    left: 0;
+    z-index: 31;
+    width: var(--label-w);
+    flex-shrink: 0;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    align-items: flex-end;
+    padding: 0 16px 10px;
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 500;
+  }
+
+  .header-scroll {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .day-strip { display: none; }
+
+  /* Hour header */
+  .hour-strip {
+    display: flex;
+    height: 48px;
+    position: relative;
+  }
+
+  .day-hours {
+    display: flex;
+    flex-shrink: 0;
+    border-right: 2px solid var(--border-day);
+    position: relative;
+  }
+
+  .hour {
+    flex-shrink: 0;
+    border-right: 1.5px solid #cdcdc7;
+    position: relative;
+    padding: 8px 0 0 6px;
+    font-size: 11.5px;
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 500;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+
+  .hour .minor-ticks {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 5px;
+    display: flex;
+  }
+
+  .hour .minor-ticks span {
+    flex: 1;
+    border-right: 1px solid #ecece7;
+  }
+  .hour .minor-ticks span:nth-child(2) { border-right-color: #dcdcd6; }
+  .hour .minor-ticks span:last-child { border-right: none; }
+
+  .rows {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .day-section {
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+
+  .day-section.weekend { background: #fbfbf8; }
+
+  .day-section-header {
+    position: sticky;
+    left: 0;
+    z-index: 15;
+    display: flex;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 8px;
+    min-height: 36px;
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--border);
+    background: inherit;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .day-section-date {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .day-section-dow {
+    color: var(--text-muted);
+    font-weight: 600;
+  }
+
+  .day-targets {
+    margin-left: 10px;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    flex-wrap: wrap;
+    flex: 0 0 auto;
+    min-width: 0;
+  }
+
+  .day-target-split {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-faint);
+    text-transform: none;
+    letter-spacing: 0;
+    white-space: nowrap;
+    line-height: 32px;
+  }
+
+  .day-target-field {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 5px;
+    min-width: 168px;
+    padding: 6px 8px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: rgba(255,255,255,0.86);
+    box-shadow: 0 1px 0 rgba(0,0,0,0.02);
+  }
+
+  .day-target-input-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  .day-target-label {
+    font-size: 11px;
+    color: var(--text);
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .day-target-input {
+    width: 108px;
+    max-width: 11vw;
+    padding: 3px 7px;
+    border: 1px solid var(--border-strong);
+    border-radius: 5px;
+    background: rgba(255,255,255,0.88);
+    color: var(--text);
+    font-size: 11px;
+    font-family: 'JetBrains Mono', monospace;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+
+  .day-target-input:focus {
+    outline: none;
+    border-color: var(--text);
+    background: #fff;
+  }
+
+  .day-target-meta {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 4px 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--text-muted);
+    text-transform: none;
+    letter-spacing: 0;
+  }
+
+  .day-target-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+  }
+
+  .day-target-stat-label {
+    font-size: 8px;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .day-target-stat-value {
+    font-size: 10px;
+    color: var(--text);
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  .day-section.today .day-section-date { color: #c67a3b; }
+
+  .row {
+    display: flex;
+    height: var(--row-h);
+    border-bottom: 1px solid var(--border);
+    position: relative;
+  }
+
+  .row.dragging-row {
+    opacity: 0.82;
+    z-index: 25;
+    background: var(--hover);
+  }
+
+  .row:hover .row-label { background: var(--hover); }
+
+  .row-label {
+    position: sticky;
+    left: 0;
+    z-index: 20;
+    width: var(--label-w);
+    flex-shrink: 0;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    gap: 8px;
+    transition: background .12s;
+  }
+
+  .row-handle {
+    width: 14px; height: 14px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-faint);
+    cursor: grab;
+    opacity: 0;
+    transition: opacity .12s;
+    flex-shrink: 0;
+  }
+
+  .row:hover .row-handle { opacity: 1; }
+  .row-handle:active { cursor: grabbing; }
+
+  .row-color {
+    width: 10px; height: 10px;
+    border-radius: 3px;
+    flex-shrink: 0;
+    cursor: pointer;
+  }
+
+  .row-name {
+    flex: 1;
+    font-size: 13.5px;
+    font-weight: 500;
+    color: var(--text);
+    outline: none;
+    padding: 3px 4px;
+    border-radius: 4px;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .row-name:focus { background: var(--hover); overflow: visible; }
+
+  .row-delete {
+    width: 20px; height: 20px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-faint);
+    border-radius: 4px;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity .12s, background .12s;
+    flex-shrink: 0;
+  }
+
+  .row:hover .row-delete { opacity: 1; }
+  .row-delete:hover { background: var(--hover); color: #c44; }
+  .row-delete svg { width: 12px; height: 12px; }
+
+  .row-grid {
+    width: max-content;
+    position: relative;
+    cursor: crosshair;
+    display: flex;
+  }
+
+  /* Per-day grid container */
+  .day-grid {
+    display: flex;
+    flex-shrink: 0;
+    border-right: 2px solid var(--border-day);
+    position: relative;
+  }
+
+  .day-grid.weekend { background: #fbfbf8; }
+
+  .cell {
+    flex-shrink: 0;
+    height: 100%;
+    border-right: 1px solid #efefea;
+  }
+
+  .cell.hour-start {
+    border-right-width: 1.5px;
+    border-right-color: #cdcdc7;
+  }
+  .cell.half-hour { border-right-color: #dcdcd6; }
+
+  /* Shift blocks */
+  .shift {
+    position: absolute;
+    top: 6px;
+    bottom: 6px;
+    border-radius: 5px;
+    cursor: grab;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    padding: 0 10px;
+    font-size: 11.5px;
+    font-weight: 500;
+    color: var(--text);
+    overflow: hidden;
+    transition: box-shadow .12s;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    z-index: 2;
+  }
+
+  .shift:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.08); z-index: 4; }
+  .shift.dragging { cursor: grabbing; box-shadow: 0 4px 14px rgba(0,0,0,0.12); z-index: 10; }
+
+  .shift .shift-time {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    opacity: 0.75;
+    margin-left: 6px;
+  }
+
+  .shift .shift-label {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .shift-handle {
+    position: absolute;
+    top: 0; bottom: 0;
+    width: 6px;
+    cursor: ew-resize;
+    z-index: 3;
+  }
+
+  .shift-handle.left { left: 0; border-radius: 5px 0 0 5px; }
+  .shift-handle.right { right: 0; border-radius: 0 5px 5px 0; }
+
+  .shift-handle::before {
+    content: '';
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 2px; height: 14px;
+    background: currentColor;
+    opacity: 0;
+    border-radius: 2px;
+    transition: opacity .12s;
+  }
+
+  .shift:hover .shift-handle::before { opacity: 0.4; }
+
+  .shift-preview {
+    position: absolute;
+    top: 6px; bottom: 6px;
+    border-radius: 5px;
+    background: rgba(47, 47, 44, 0.08);
+    border: 1.5px dashed rgba(47, 47, 44, 0.3);
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  .add-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    color: var(--text-muted);
+    font-size: 13px;
+    cursor: pointer;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    transition: background .12s, color .12s;
+    width: var(--label-w);
+    position: sticky;
+    left: 0;
+    z-index: 20;
+  }
+
+  .add-row:hover { color: var(--text); background: var(--hover); }
+  .add-row svg { width: 14px; height: 14px; }
+
+  .tooltip {
+    position: fixed;
+    background: #2f2f2c;
+    color: white;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 11.5px;
+    font-family: 'JetBrains Mono', monospace;
+    pointer-events: none;
+    z-index: 100;
+    white-space: nowrap;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    opacity: 0;
+    transition: opacity .1s;
+  }
+
+  .tooltip.visible { opacity: 1; }
+
+  .color-menu {
+    position: fixed;
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    border-radius: 8px;
+    padding: 6px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    z-index: 200;
+    display: none;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+  }
+
+  .color-menu.visible { display: grid; }
+
+  .color-swatch {
+    width: 28px; height: 28px;
+    border-radius: 5px;
+    cursor: pointer;
+    border: 2px solid transparent;
+  }
+
+  .color-swatch:hover { border-color: var(--border-strong); }
+
+  .overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(47, 47, 44, 0.25);
+    z-index: 300;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .18s;
+  }
+
+  .overlay.visible { opacity: 1; pointer-events: all; }
+
+  .settings-panel {
+    position: fixed;
+    top: 0; right: 0; bottom: 0;
+    width: 360px;
+    background: var(--surface);
+    border-left: 1px solid var(--border);
+    z-index: 301;
+    transform: translateX(100%);
+    transition: transform .22s cubic-bezier(.4,0,.2,1);
+    display: flex;
+    flex-direction: column;
+    box-shadow: -4px 0 24px rgba(0,0,0,0.06);
+  }
+
+  .settings-panel.visible { transform: translateX(0); }
+
+  .settings-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .settings-title { font-family: 'Fraunces', serif; font-size: 20px; font-weight: 500; }
+
+  .settings-close {
+    width: 28px; height: 28px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 6px;
+    cursor: pointer;
+    color: var(--text-muted);
+    transition: background .12s;
+  }
+
+  .settings-close:hover { background: var(--hover); color: var(--text); }
+  .settings-close svg { width: 16px; height: 16px; }
+
+  .settings-body { flex: 1; overflow-y: auto; padding: 20px 24px; }
+  .settings-section { margin-bottom: 28px; }
+
+  .settings-section-title {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    font-weight: 600;
+    margin-bottom: 12px;
+  }
+
+  .settings-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 16px;
+  }
+
+  .settings-field label { font-size: 13px; font-weight: 500; color: var(--text); }
+
+  .settings-field .hint {
+    font-size: 11.5px;
+    color: var(--text-muted);
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+  }
+
+  .settings-input, .settings-select {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--border-strong);
+    border-radius: 6px;
+    font-size: 13px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text);
+    background: var(--surface);
+    transition: border-color .12s;
+  }
+
+  .settings-input:focus, .settings-select:focus {
+    outline: none;
+    border-color: var(--text);
+  }
+
+  .settings-select { font-family: inherit; cursor: pointer; }
+
+  .time-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  .settings-footer {
+    padding: 16px 24px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+  }
+
+  .timeline-wrap::-webkit-scrollbar { height: 10px; width: 10px; }
+  .timeline-wrap::-webkit-scrollbar-track { background: var(--bg); }
+  .timeline-wrap::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 5px; }
+  .timeline-wrap::-webkit-scrollbar-thumb:hover { background: #b8b8b3; }
+
+  .settings-body::-webkit-scrollbar { width: 8px; }
+  .settings-body::-webkit-scrollbar-track { background: transparent; }
+  .settings-body::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 4px; }
+
+  .hint-corner {
+    display: flex;
+    justify-content: flex-end;
+    padding: 8px 2px 0;
+    font-size: 11.5px;
+    color: var(--text-faint);
+    font-style: italic;
+    font-family: 'Fraunces', serif;
+    pointer-events: none;
+  }
+
+  .app.view-table .time-header,
+  .app.view-table .hint-corner {
+    display: none;
+  }
+
+  .table-view {
+    display: none;
+    padding: 20px 22px 28px;
+  }
+
+  .app.view-table .table-view {
+    display: block;
+  }
+
+  @page {
+    size: A3 landscape;
+    margin: 2mm;
+  }
+
+  @media print {
+    html, body {
+      height: auto;
+      overflow: visible !important;
+      background: #fff;
+    }
+
+    body {
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    .app,
+    .tooltip,
+    .color-menu,
+    .zoom-indicator,
+    .overlay,
+    .settings-panel {
+      display: none !important;
+    }
+
+    .print-sheet {
+      display: block;
+      padding: 0;
+      height: 293mm;
+      overflow: hidden;
+      transform: scale(0.94);
+      transform-origin: top left;
+      width: 106.4%;
+    }
+
+    .print-week {
+      display: block;
+    }
+
+    .print-grid {
+      height: calc(293mm - 14mm);
+    }
+  }
+
+  .table-shell {
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    background: var(--surface);
+    box-shadow: 0 10px 28px rgba(0,0,0,0.04);
+  }
+
+  .schedule-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+  }
+
+  .schedule-table th,
+  .schedule-table td {
+    border-bottom: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+    vertical-align: top;
+    padding: 14px 12px;
+  }
+
+  .schedule-table th:last-child,
+  .schedule-table td:last-child {
+    border-right: none;
+  }
+
+  .schedule-table thead th {
+    background: #f8f8f6;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    text-align: left;
+  }
+
+  .schedule-table th.position-col,
+  .schedule-table td.position-col {
+    width: 220px;
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    background: inherit;
+  }
+
+  .schedule-table thead th.position-col {
+    z-index: 3;
+    background: #f8f8f6;
+  }
+
+  .schedule-table tbody tr:nth-child(even) td {
+    background: #fcfcfb;
+  }
+
+  .schedule-table tbody tr:nth-child(even) td.position-col {
+    background: #fcfcfb;
+  }
+
+  .table-position {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 28px;
+  }
+
+  .table-position-color {
+    width: 10px;
+    height: 28px;
+    border-radius: 999px;
+    flex-shrink: 0;
+  }
+
+  .table-position-name {
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .table-day {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-height: 74px;
+  }
+
+  .table-day-empty {
+    color: var(--text-faint);
+    font-style: italic;
+  }
+
+  .table-shift-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .table-shift-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    background: #f6f3ed;
+  }
+
+  .table-shift-worker {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .table-shift-time,
+  .table-day-total,
+  .table-total {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  .table-day-total,
+  .table-total {
+    margin-top: auto;
+    padding-top: 4px;
+    border-top: 1px dashed var(--border);
+  }
+
+  .table-total {
+    font-weight: 700;
+    color: var(--text);
+    white-space: nowrap;
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="topbar">
+    <div class="title-group">
+      <div class="title-row">
+        <div class="title" id="doc-title" contenteditable="true" spellcheck="false">Shift Planner</div>
+        <div class="subtitle">— daily service schedule</div>
+      </div>
+      <div class="date-range">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        <input type="date" class="date-input" id="date-start" />
+        <span class="date-arrow">→</span>
+        <input type="date" class="date-input" id="date-end" title="Automatically set to Sunday" disabled />
+        <span id="date-span" style="margin-left:6px; font-family: 'JetBrains Mono', monospace; color: var(--text-faint);"></span>
+      </div>
+      <div class="print-week" id="print-week"></div>
+    </div>
+    <div class="toolbar">
+      <div class="view-switch" aria-label="View mode">
+        <button class="btn active" id="btn-view-timeline" type="button">Timeline</button>
+        <button class="btn" id="btn-view-table" type="button">Table</button>
+      </div>
+      <div class="stats">
+        <span>Shifts <strong id="stat-count">0</strong></span>
+        <span>Total Hrs <strong id="stat-hours">0.00</strong></span>
+      </div>
+      <div class="menu-wrap" id="clear-menu">
+        <button class="btn" id="btn-clear-menu" type="button" title="Clear roster data" aria-haspopup="true" aria-expanded="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+          Clear
+          <svg class="menu-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="menu-panel" id="clear-menu-panel" role="menu" aria-label="Clear actions">
+          <button class="menu-item" id="btn-clear" type="button" title="Clear all shifts" role="menuitem">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+            Clear Roster
+          </button>
+          <button class="menu-item" id="btn-clear-names" type="button" title="Clear all assigned names" role="menuitem">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16"/><path d="M12 4v12"/><path d="M8 8l4-4 4 4"/></svg>
+            Clear Names
+          </button>
+        </div>
+      </div>
+      <div class="menu-wrap" id="data-menu">
+        <button class="btn" id="btn-data-menu" type="button" title="Import or export planner data" aria-haspopup="true" aria-expanded="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="7" ry="3"/><path d="M5 5v14c0 1.66 3.13 3 7 3s7-1.34 7-3V5"/><path d="M5 12c0 1.66 3.13 3 7 3s7-1.34 7-3"/></svg>
+          Data
+          <svg class="menu-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="menu-panel" id="data-menu-panel" role="menu" aria-label="Data actions">
+          <div class="menu-note">Download</div>
+          <button class="menu-item" id="btn-download-pdf" type="button" title="Open a print-ready PDF dialog for the weekly roster" role="menuitem">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+            Download PDF
+          </button>
+          <button class="menu-item" id="btn-export-roster" type="button" title="Download the current shifts as a roster Excel file" role="menuitem">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M12 12v6"/><path d="M9 15l3 3 3-3"/></svg>
+            Download Roster (.xlsx)
+          </button>
+          <button class="menu-item" id="btn-export-json" type="button" title="Save the current state as JSON" role="menuitem">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Export Planner JSON
+          </button>
+          <div class="menu-divider"></div>
+          <div class="menu-note">Load</div>
+          <button class="menu-item" id="btn-import-json" type="button" title="Load state from a JSON file" role="menuitem">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            Import Planner JSON
+          </button>
+        </div>
+      </div>
+      <button class="btn btn-primary" id="btn-add-row">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Position
+      </button>
+      <button class="icon-btn" id="btn-settings" title="Settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <div class="timeline-wrap" id="timeline-wrap">
+    <div class="timeline" id="timeline">
+      <div class="time-header">
+        <div class="corner">Position / Time</div>
+        <div class="header-scroll">
+          <div class="day-strip" id="day-strip"></div>
+          <div class="hour-strip" id="hour-strip"></div>
+        </div>
+      </div>
+      <div class="rows" id="rows"></div>
+      <div class="table-view" id="table-view"></div>
+    </div>
+  </div>
+  <div class="hint-corner">Drag to create • Drag edges to resize • Ctrl+scroll to zoom</div>
+</div>
+
+<div class="print-sheet" id="print-sheet"></div>
+
+<div class="tooltip" id="tooltip"></div>
+<div class="color-menu" id="color-menu"></div>
+<div class="zoom-indicator" id="zoom-indicator"></div>
+<input type="file" id="json-import-input" accept="application/json,.json" hidden />
+
+<div class="overlay" id="overlay"></div>
+<div class="settings-panel" id="settings-panel">
+  <div class="settings-header">
+    <div class="settings-title">Settings</div>
+    <div class="settings-close" id="btn-settings-close">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </div>
+  </div>
+  <div class="settings-body">
+    <div class="settings-section">
+      <div class="settings-section-title">Time Grid</div>
+
+      <div class="settings-field">
+        <label for="setting-slot">Grid size</label>
+        <div class="hint">Time unit represented by each cell</div>
+        <select class="settings-select" id="setting-slot">
+          <option value="5">5 minutes</option>
+          <option value="10">10 minutes</option>
+          <option value="15" selected>15 minutes</option>
+          <option value="20">20 minutes</option>
+          <option value="30">30 minutes</option>
+          <option value="60">60 minutes</option>
+        </select>
+      </div>
+
+      <div class="settings-field">
+        <label>Daily operating hours</label>
+        <div class="hint">Daily visible start / end time</div>
+        <div class="time-pair">
+          <input type="time" class="settings-input" id="setting-start" value="08:00" />
+          <input type="time" class="settings-input" id="setting-end" value="23:59" />
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-section-title">About</div>
+      <div class="hint" style="font-size:12px; line-height:1.6;">
+        Use Ctrl + mouse wheel to zoom the timeline horizontally. If you are viewing more than two weeks, zoom out significantly. All settings are saved automatically in your browser.
+      </div>
+    </div>
+  </div>
+  <div class="settings-footer">
+    <button class="btn" id="btn-settings-reset">Reset</button>
+    <button class="btn btn-primary" id="btn-settings-apply">Apply</button>
+  </div>
+</div>
+
+<script>
+/* ===================== Storage ===================== */
+const STORAGE_KEY = 'shift-planner-v2';
+const HISTORY_LIMIT = 100;
+let undoStack = [];
+let redoStack = [];
+let currentHistorySnapshot = '';
+let isApplyingHistory = false;
+
+function loadSettings() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch { return null; }
+}
+
+function serializePlannerSnapshot() {
+  return JSON.stringify({
+    slotMin: config.slotMin,
+    startHourMin: config.startHourMin,
+    endHourMin: config.endHourMin,
+    cellW: config.cellW,
+    viewMode: state.viewMode,
+    title: state.title,
+    dateStart: state.dateStart,
+    dateEnd: state.dateEnd,
+    dayTargets: state.dayTargets,
+    rows: state.rows,
+  });
+}
+
+function normalizeRows(rows) {
+  return Array.isArray(rows) ? rows.map((row, rowIdx) => ({
+    id: typeof row.id === 'string' ? row.id : uid('r'),
+    name: typeof row.name === 'string' ? row.name : `Position ${rowIdx + 1}`,
+    color: typeof row.color === 'number' ? Math.max(0, Math.min(COLORS.length - 1, row.color)) : rowIdx % COLORS.length,
+    shifts: Array.isArray(row.shifts) ? row.shifts.map((shift) => ({
+      id: typeof shift.id === 'string' ? shift.id : uid('s'),
+      dayIdx: typeof shift.dayIdx === 'number' ? shift.dayIdx : 0,
+      workerName: typeof shift.workerName === 'string' ? shift.workerName : '',
+      startMin: typeof shift.startMin === 'number' ? shift.startMin : config.startHourMin,
+      endMin: typeof shift.endMin === 'number' ? shift.endMin : config.startHourMin + config.slotMin,
+    })) : [],
+  })) : [];
+}
+
+function applyPlannerSnapshot(snapshotText) {
+  const snapshot = JSON.parse(snapshotText);
+  config.slotMin = typeof snapshot.slotMin === 'number' ? snapshot.slotMin : 15;
+  config.startHourMin = typeof snapshot.startHourMin === 'number' ? snapshot.startHourMin : 8 * 60;
+  config.endHourMin = typeof snapshot.endHourMin === 'number' ? snapshot.endHourMin : 24 * 60;
+  config.cellW = typeof snapshot.cellW === 'number'
+    ? Math.max(MIN_CELL_W, Math.min(MAX_CELL_W, snapshot.cellW))
+    : DEFAULT_CELL_W;
+
+  state = {
+    title: typeof snapshot.title === 'string' ? snapshot.title : 'Shift Planner',
+    viewMode: snapshot.viewMode === 'table' ? 'table' : 'timeline',
+    dateStart: typeof snapshot.dateStart === 'string' ? snapshot.dateStart : toISO(getWeekRangeFromDate(new Date()).start),
+    dateEnd: typeof snapshot.dateEnd === 'string' ? snapshot.dateEnd : toISO(getWeekRangeFromDate(new Date()).end),
+    dayTargets: normalizeDayTargets(snapshot.dayTargets),
+    rows: normalizeRows(snapshot.rows),
+  };
+  syncIdCounterFromState();
+
+  if (typeof titleEl !== 'undefined') {
+    titleEl.textContent = state.title;
+    document.title = state.title;
+  }
+  if (typeof dateStartEl !== 'undefined' && typeof dateEndEl !== 'undefined') {
+    dateStartEl.value = state.dateStart;
+    dateEndEl.value = state.dateEnd;
+  }
+  if (typeof updateDateSpan === 'function') updateDateSpan();
+  if (typeof renderApp === 'function') renderApp();
+}
+
+function saveSettings() {
+  const snapshotText = serializePlannerSnapshot();
+  if (!isApplyingHistory && currentHistorySnapshot && snapshotText !== currentHistorySnapshot) {
+    undoStack.push(currentHistorySnapshot);
+    if (undoStack.length > HISTORY_LIMIT) undoStack.shift();
+    redoStack = [];
+  }
+  currentHistorySnapshot = snapshotText;
+  try {
+    localStorage.setItem(STORAGE_KEY, snapshotText);
+  } catch {}
+}
+
+/* ===================== Config ===================== */
+const config = {
+  slotMin: 15,
+  startHourMin: 8 * 60,
+  endHourMin: 24 * 60,
+  cellW: 22,
+};
+
+function slotsPerDay() {
+  return Math.floor((config.endHourMin - config.startHourMin) / config.slotMin);
+}
+
+function slotsPerHour() {
+  return 60 / config.slotMin;
+}
+
+function dayCount() {
+  const s = parseISO(state.dateStart);
+  const e = parseISO(state.dateEnd);
+  if (!s || !e) return 1;
+  const days = Math.round((e - s) / 86400000) + 1;
+  return Math.max(1, days);
+}
+
+function totalSlots() {
+  return slotsPerDay() * dayCount();
+}
+
+/* Allow very small cells so 2 weeks fit on one screen */
+const MIN_CELL_W = 1.5;
+const MAX_CELL_W = 80;
+const DEFAULT_CELL_W = 22;
+
+const COLORS = [
+  { bg: 'var(--c1-bg)', raw: '#c67a3b', printBg: '#fde8d7' },
+  { bg: 'var(--c2-bg)', raw: '#6b8f5a', printBg: '#dfe7d9' },
+  { bg: 'var(--c3-bg)', raw: '#4a7ba0', printBg: '#d9e3ec' },
+  { bg: 'var(--c4-bg)', raw: '#955a82', printBg: '#ead9e4' },
+  { bg: 'var(--c5-bg)', raw: '#b09345', printBg: '#f0e4c7' },
+  { bg: 'var(--c6-bg)', raw: '#7a6aa5', printBg: '#e2dcef' },
+];
+
+/* ===================== Date helpers ===================== */
+function parseISO(str) {
+  if (!str) return null;
+  const [y, m, d] = str.split('-').map(Number);
+  if (!y || !m || !d) return null;
+  return new Date(y, m - 1, d);
+}
+
+function toISO(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+function addDays(date, n) {
+  const d = new Date(date);
+  d.setDate(d.getDate() + n);
+  return d;
+}
+
+function todayISO(offsetDays = 0) {
+  return toISO(addDays(new Date(), offsetDays));
+}
+
+function getMonday(date) {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  d.setDate(d.getDate() + diff);
+  return d;
+}
+
+function getWeekRangeFromDate(date) {
+  const start = getMonday(date);
+  const end = addDays(start, 6);
+  return { start, end };
+}
+
+const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+function isSameDay(a, b) {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
+
+function normalizeDayTargetEntry(value) {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    return {
+      lunch: typeof value.lunch === 'string' ? formatTargetSales(value.lunch) : '',
+      dinner: typeof value.dinner === 'string' ? formatTargetSales(value.dinner) : '',
+    };
+  }
+  if (typeof value === 'string') {
+    return { lunch: formatTargetSales(value), dinner: '' };
+  }
+  return { lunch: '', dinner: '' };
+}
+
+function normalizeDayTargets(values) {
+  return Array.from({ length: 7 }, (_, idx) => normalizeDayTargetEntry(Array.isArray(values) ? values[idx] : null));
+}
+
+/* ===================== State ===================== */
+let state = {
+  title: 'Shift Planner',
+  viewMode: 'timeline',
+  dateStart: toISO(getWeekRangeFromDate(new Date()).start),
+  dateEnd: toISO(getWeekRangeFromDate(new Date()).end),
+  dayTargets: Array.from({ length: 7 }, () => ({ lunch: '', dinner: '' })),
+  rows: [
+    { id: 'r1', name: 'Head Chef',    color: 0, shifts: [{ id: 's1', dayIdx: 0, workerName: '', startMin: 12*60, endMin: 22*60 }] },
+    { id: 'r2', name: 'Sous Chef',    color: 1, shifts: [{ id: 's2', dayIdx: 0, workerName: '', startMin: 13*60, endMin: 22*60 }] },
+    { id: 'r3', name: 'Hot Line',     color: 2, shifts: [{ id: 's3', dayIdx: 0, workerName: '', startMin: 14*60+30, endMin: 22*60+30 }] },
+    { id: 'r4', name: 'Cold Station', color: 3, shifts: [{ id: 's4', dayIdx: 0, workerName: '', startMin: 14*60, endMin: 21*60 }] },
+    { id: 'r5', name: 'Pastry',       color: 4, shifts: [{ id: 's5', dayIdx: 0, workerName: '', startMin: 8*60,  endMin: 14*60 }] },
+    { id: 'r6', name: 'Dishwasher',   color: 5, shifts: [] },
+  ],
+};
+
+let idCounter = 100;
+const uid = (p) => `${p}${++idCounter}`;
+
+function syncIdCounterFromState() {
+  const maxId = state.rows.reduce((maxValue, row) => {
+    const rowNum = Number(String(row.id || '').replace(/^\D+/, ''));
+    const rowMax = Number.isFinite(rowNum) ? rowNum : 0;
+    const shiftMax = (row.shifts || []).reduce((shiftMaxValue, shift) => {
+      const shiftNum = Number(String(shift.id || '').replace(/^\D+/, ''));
+      return Number.isFinite(shiftNum) ? Math.max(shiftMaxValue, shiftNum) : shiftMaxValue;
+    }, 0);
+    return Math.max(maxValue, rowMax, shiftMax);
+  }, 0);
+  idCounter = Math.max(idCounter, maxId);
+}
+
+/* ===================== Restore from storage ===================== */
+(function restore() {
+  const s = loadSettings();
+  if (!s) return;
+  if (typeof s.slotMin === 'number') config.slotMin = s.slotMin;
+  if (typeof s.startHourMin === 'number') config.startHourMin = s.startHourMin;
+  if (typeof s.endHourMin === 'number') config.endHourMin = s.endHourMin;
+  if (typeof s.cellW === 'number') config.cellW = Math.max(MIN_CELL_W, Math.min(MAX_CELL_W, s.cellW));
+  if (typeof s.title === 'string') state.title = s.title;
+  if (s.viewMode === 'table' || s.viewMode === 'timeline') state.viewMode = s.viewMode;
+  if (typeof s.dateStart === 'string') state.dateStart = s.dateStart;
+  if (typeof s.dateEnd === 'string') state.dateEnd = s.dateEnd;
+  if (Array.isArray(s.dayTargets)) {
+    state.dayTargets = normalizeDayTargets(s.dayTargets);
+  }
+  if (Array.isArray(s.rows)) {
+    // migrate old shifts without dayIdx
+    state.rows = s.rows.map(r => ({
+      ...r,
+      shifts: (r.shifts || []).map(sh => ({
+        id: sh.id || uid('s'),
+        dayIdx: typeof sh.dayIdx === 'number' ? sh.dayIdx : 0,
+        workerName: typeof sh.workerName === 'string' ? sh.workerName : '',
+        startMin: sh.startMin,
+        endMin: sh.endMin,
+      }))
+    }));
+  }
+
+  const restoredStart = parseISO(state.dateStart) || new Date();
+  const weeklyRange = getWeekRangeFromDate(restoredStart);
+  const normalizedStart = toISO(weeklyRange.start);
+  const normalizedEnd = toISO(weeklyRange.end);
+  const startShiftDays = Math.round((weeklyRange.start - restoredStart) / 86400000);
+  if (startShiftDays !== 0) {
+    state.rows.forEach((row) => {
+      row.shifts.forEach((shift) => { shift.dayIdx -= startShiftDays; });
+    });
+  }
+  state.dateStart = normalizedStart;
+  state.dateEnd = normalizedEnd;
+  syncIdCounterFromState();
+})();
+
+currentHistorySnapshot = serializePlannerSnapshot();
+
+/* ===================== Time helpers ===================== */
+function minToTime(min) {
+  const m = ((min % (24*60)) + 24*60) % (24*60);
+  const h = Math.floor(m / 60);
+  const mm = m % 60;
+  return `${String(h).padStart(2,'0')}:${String(mm).padStart(2,'0')}`;
+}
+
+function minToTimeDisplay(min) {
+  const h = Math.floor(min / 60);
+  const mm = min % 60;
+  return `${String(h).padStart(2,'0')}:${String(mm).padStart(2,'0')}`;
+}
+
+function timeToMin(str) {
+  const [h, m] = str.split(':').map(Number);
+  return h * 60 + m;
+}
+
+function clampSlotGlobal(s) {
+  return Math.max(0, Math.min(totalSlots(), s));
+}
+
+/* Convert a global slot index (across days) to {dayIdx, localSlot} */
+function globalToLocal(globalSlot) {
+  const spd = slotsPerDay();
+  const dayIdx = Math.floor(globalSlot / spd);
+  const localSlot = globalSlot % spd;
+  return { dayIdx, localSlot };
+}
+
+function localSlotToMin(localSlot) {
+  return config.startHourMin + localSlot * config.slotMin;
+}
+
+function minToLocalSlot(min) {
+  return (min - config.startHourMin) / config.slotMin;
+}
+
+function shiftToGlobalSlots(shift) {
+  const spd = slotsPerDay();
+  const ls = minToLocalSlot(shift.startMin);
+  const le = minToLocalSlot(shift.endMin);
+  return {
+    gs: shift.dayIdx * spd + ls,
+    ge: shift.dayIdx * spd + le,
+  };
+}
+
+function globalSlotsToShiftValues(gs, ge) {
+  // shift always belongs to the day containing its start
+  const spd = slotsPerDay();
+  const dayIdx = Math.floor(gs / spd);
+  let ls = gs - dayIdx * spd;
+  let le = ge - dayIdx * spd;
+  // clamp le to the same day (we don't allow cross-day shifts)
+  if (le > spd) le = spd;
+  return {
+    dayIdx,
+    startMin: localSlotToMin(ls),
+    endMin: localSlotToMin(le),
+  };
+}
+
+function formatDayHeader(date) {
+  const dow = date.getDay();
+  return {
+    date: `${MON[date.getMonth()]} ${date.getDate()}`,
+    dow: DOW[dow],
+  };
+}
+
+function getOrderedDates() {
+  const startDate = parseISO(state.dateStart) || new Date();
+  return Array.from({ length: dayCount() }, (_, idx) => addDays(startDate, idx));
+}
+
+function getShiftsForRowDay(row, dayIdx) {
+  return row.shifts
+    .filter((shift) => shift.dayIdx === dayIdx)
+    .sort((a, b) => a.startMin - b.startMin);
+}
+
+function getDayTotalHours(shifts) {
+  const totalMin = shifts.reduce((sum, shift) => sum + Math.max(0, shift.endMin - shift.startMin), 0);
+  return totalMin ? (totalMin / 60).toFixed(2) : '';
+}
+
+function getRowTotalHours(row) {
+  const totalMin = row.shifts.reduce((sum, shift) => {
+    if (shift.dayIdx < 0 || shift.dayIdx >= dayCount()) return sum;
+    return sum + Math.max(0, shift.endMin - shift.startMin);
+  }, 0);
+  return totalMin ? (totalMin / 60).toFixed(2) : '0.00';
+}
+
+function getPrintHourLabels() {
+  const labels = [];
+  for (let min = config.startHourMin; min < config.endHourMin; min += 120) {
+    labels.push(minToTimeDisplay(min));
+  }
+  const endLabel = minToTimeDisplay(config.endHourMin >= 24 * 60 ? (24 * 60 - 1) : config.endHourMin);
+  if (!labels.length || labels[labels.length - 1] !== endLabel) labels.push(endLabel);
+  return labels;
+}
+
+function getDayServiceCutoffMinutes(dayIdx) {
+  const date = addDays(parseISO(state.dateStart) || new Date(), dayIdx);
+  const dow = date.getDay();
+  return dow === 0 || dow === 6 ? 17 * 60 : 16 * 60 + 30;
+}
+
+function getDayServiceSplitText(dayIdx) {
+  const cutoff = getDayServiceCutoffMinutes(dayIdx);
+  return `Lunch < ${minToTimeDisplay(cutoff)} / Dinner >= ${minToTimeDisplay(cutoff)}`;
+}
+
+function getDayTargetValue(dayIdx) {
+  if (!Array.isArray(state.dayTargets)) return normalizeDayTargetEntry(null);
+  return normalizeDayTargetEntry(state.dayTargets[dayIdx]);
+}
+
+function parseTargetSalesNumber(value) {
+  const digits = String(value || '').replace(/[^\d]/g, '');
+  return digits ? Number(digits) : 0;
+}
+
+function formatCurrencyDisplay(value, fractionDigits = 0) {
+  return `$${Number(value || 0).toLocaleString('en-US', {
+    minimumFractionDigits: fractionDigits,
+    maximumFractionDigits: fractionDigits,
+  })}`;
+}
+
+function getDayServiceRange(dayIdx, kind) {
+  const cutoff = getDayServiceCutoffMinutes(dayIdx);
+  if (kind === 'dinner') {
+    return {
+      startMin: Math.max(config.startHourMin, cutoff),
+      endMin: config.endHourMin,
+    };
+  }
+  return {
+    startMin: config.startHourMin,
+    endMin: Math.min(config.endHourMin, cutoff),
+  };
+}
+
+function getDayServiceLaborHours(dayIdx, kind) {
+  const range = getDayServiceRange(dayIdx, kind);
+  const totalMin = state.rows.reduce((sum, row) => {
+    return sum + row.shifts.reduce((shiftSum, shift) => {
+      if (shift.dayIdx !== dayIdx) return shiftSum;
+      const overlapStart = Math.max(shift.startMin, range.startMin);
+      const overlapEnd = Math.min(shift.endMin, range.endMin);
+      if (overlapEnd <= overlapStart) return shiftSum;
+      return shiftSum + (overlapEnd - overlapStart);
+    }, 0);
+  }, 0);
+  return totalMin / 60;
+}
+
+function getDayTargetMetrics(dayIdx, kind) {
+  const target = getDayTargetValue(dayIdx);
+  const sales = parseTargetSalesNumber(target[kind]);
+  const hours = getDayServiceLaborHours(dayIdx, kind);
+  return {
+    salesText: sales ? formatCurrencyDisplay(sales, 0) : '$0',
+    hoursText: `${hours.toFixed(2)}h`,
+    ratioText: hours > 0 ? `${formatCurrencyDisplay(sales / hours, 2)}/h` : '-',
+  };
+}
+
+function buildDayTargetMetaHtml(dayIdx, kind) {
+  const metrics = getDayTargetMetrics(dayIdx, kind);
+  return `
+    <span class="day-target-stat">
+      <span class="day-target-stat-label">Staff hours</span>
+      <span class="day-target-stat-value">${escapeHtml(metrics.hoursText)}</span>
+    </span>
+    <span class="day-target-stat">
+      <span class="day-target-stat-label">Sales / hour</span>
+      <span class="day-target-stat-value">${escapeHtml(metrics.ratioText)}</span>
+    </span>
+  `;
+}
+
+function buildDayTargetSummary(dayIdx) {
+  const target = getDayTargetValue(dayIdx);
+  const parts = [];
+  if (target.lunch) parts.push(`<span><strong>Lunch</strong> ${escapeHtml(target.lunch)}</span>`);
+  if (target.dinner) parts.push(`<span><strong>Dinner</strong> ${escapeHtml(target.dinner)}</span>`);
+  return parts.length ? `<span class="print-day-targets">${parts.join('')}</span>` : '';
+}
+
+function buildPrintSheetHtml() {
+  const dates = getOrderedDates();
+  const totalMinutes = Math.max(1, config.endHourMin - config.startHourMin);
+  const hourLabels = getPrintHourLabels();
+
+  const dayCards = dates.map((date, dayIdx) => {
+    const meta = formatDayHeader(date);
+    const rowsHtml = state.rows.map((row) => {
+      const dayShifts = getShiftsForRowDay(row, dayIdx);
+      const blocksHtml = dayShifts.map((shift) => {
+        const leftPct = ((shift.startMin - config.startHourMin) / totalMinutes) * 100;
+        const widthPct = ((shift.endMin - shift.startMin) / totalMinutes) * 100;
+        const worker = (shift.workerName || '').trim();
+        const label = worker
+          ? `${escapeHtml(worker)} · ${minToTime(shift.startMin)}-${minToTimeDisplay(shift.endMin)}`
+          : `${minToTime(shift.startMin)}-${minToTimeDisplay(shift.endMin)}`;
+        return `<div class="print-shift-block" style="left:${leftPct}%; width:${widthPct}%; background:${COLORS[row.color].printBg}; border-left:2px solid ${COLORS[row.color].raw}; color:#2f2f2c;">${label}</div>`;
+      }).join('');
+
+      return `<div class="print-row">
+        <div class="print-row-name">${escapeHtml(row.name)}</div>
+        <div class="print-row-track">${blocksHtml || '<div class="print-empty">No shift</div>'}</div>
+      </div>`;
+    }).join('');
+
+    return `<section class="print-day-card">
+      <div class="print-day-head">
+        <div><span class="print-day-name">${escapeHtml(meta.dow)}</span>${buildDayTargetSummary(dayIdx)}</div>
+        <div class="print-day-date">${escapeHtml(meta.date)}</div>
+      </div>
+      <div class="print-hours">
+        <div class="print-hours-label">Position / Time</div>
+        <div class="print-hours-strip" style="grid-template-columns: repeat(${hourLabels.length}, minmax(0, 1fr));">
+          ${hourLabels.map((label) => `<div class="print-hour">${escapeHtml(label)}</div>`).join('')}
+        </div>
+      </div>
+      ${rowsHtml}
+    </section>`;
+  }).join('');
+
+  return `
+    <div class="print-sheet-title">${escapeHtml(state.title || 'Shift Planner')}</div>
+    <div class="print-sheet-week">${escapeHtml(printWeekEl.textContent || '')}</div>
+    <div class="print-grid">${dayCards}</div>
+  `;
+}
+
+function formatTargetSales(value) {
+  const digits = String(value || '').replace(/[^\d]/g, '');
+  if (!digits) return '';
+  return Number(digits).toLocaleString('en-US');
+}
+
+function escapeAttr(s) {
+  return escapeHtml(String(s)).replace(/'/g, '&#39;');
+}
+
+/* ===================== Render header ===================== */
+function renderHeader() {
+  const dayStrip = document.getElementById('day-strip');
+  const hourStrip = document.getElementById('hour-strip');
+  dayStrip.innerHTML = '';
+  hourStrip.innerHTML = '';
+
+  const spd = slotsPerDay();
+  const slotW = config.cellW;
+  const dayHours = document.createElement('div');
+  dayHours.className = 'day-hours';
+  dayHours.style.width = (spd * slotW) + 'px';
+
+  const spH = slotsPerHour();
+  const hourPxW = spH * slotW;
+  let labelStep = 1;
+  if (hourPxW < 28) labelStep = Math.ceil(28 / hourPxW);
+
+  const startHr = config.startHourMin / 60;
+  const endHr = config.endHourMin / 60;
+  const firstFullHour = Math.ceil(startHr - 1e-9);
+
+  if (firstFullHour > startHr) {
+    const partialMin = (firstFullHour - startHr) * 60;
+    const partialSlots = partialMin / config.slotMin;
+    const block = document.createElement('div');
+    block.className = 'hour';
+    block.style.width = (partialSlots * slotW) + 'px';
+    if (hourPxW >= 24) block.textContent = minToTimeDisplay(startHr * 60);
+    dayHours.appendChild(block);
+  }
+
+  let hourIdx = 0;
+  for (let h = firstFullHour; h < endHr; h++) {
+    const remainingHr = Math.min(1, endHr - h);
+    const block = document.createElement('div');
+    block.className = 'hour';
+    block.style.width = (remainingHr * spH * slotW) + 'px';
+
+    const showLabel = (hourIdx % labelStep) === 0 && hourPxW >= 18;
+    if (showLabel) block.textContent = minToTimeDisplay(h * 60);
+
+    const slotsInBlock = Math.round(remainingHr * spH);
+    if (slotsInBlock > 1 && slotW >= 10) {
+      const ticks = document.createElement('div');
+      ticks.className = 'minor-ticks';
+      for (let i = 0; i < slotsInBlock; i++) ticks.appendChild(document.createElement('span'));
+      block.appendChild(ticks);
+    }
+    dayHours.appendChild(block);
+    hourIdx++;
+  }
+
+  hourStrip.appendChild(dayHours);
+}
+
+/* ===================== Render rows ===================== */
+function renderRows() {
+  const rowsEl = document.getElementById('rows');
+  rowsEl.innerHTML = '';
+
+  const days = dayCount();
+  const spd = slotsPerDay();
+  const dayPxW = spd * config.cellW;
+  const startDate = parseISO(state.dateStart) || new Date();
+  const todayDate = new Date();
+
+  for (let di = 0; di < days; di++) {
+    const date = addDays(startDate, di);
+    const dow = date.getDay();
+    const isWeekend = dow === 0 || dow === 6;
+    const isToday = isSameDay(date, todayDate);
+    const section = document.createElement('div');
+    section.className = 'day-section' + (isWeekend ? ' weekend' : '') + (isToday ? ' today' : '');
+    section.dataset.dayIdx = di;
+
+    const meta = formatDayHeader(date);
+    const header = document.createElement('div');
+    header.className = 'day-section-header';
+    const dayTarget = getDayTargetValue(di);
+    header.innerHTML = `<span class="day-section-date">${meta.date}</span><span class="day-section-dow">${meta.dow}</span><div class="day-targets"><span class="day-target-split">${escapeHtml(getDayServiceSplitText(di))}</span><label class="day-target-field"><div class="day-target-input-row"><span class="day-target-label">Lunch</span><input class="day-target-input" data-day-idx="${di}" data-target-kind="lunch" type="text" inputmode="numeric" placeholder="Lunch sales" value="${escapeAttr(dayTarget.lunch)}" /></div><span class="day-target-meta" data-day-idx="${di}" data-target-kind="lunch">${buildDayTargetMetaHtml(di, 'lunch')}</span></label><label class="day-target-field"><div class="day-target-input-row"><span class="day-target-label">Dinner</span><input class="day-target-input" data-day-idx="${di}" data-target-kind="dinner" type="text" inputmode="numeric" placeholder="Dinner sales" value="${escapeAttr(dayTarget.dinner)}" /></div><span class="day-target-meta" data-day-idx="${di}" data-target-kind="dinner">${buildDayTargetMetaHtml(di, 'dinner')}</span></label></div>`;
+    section.appendChild(header);
+
+    state.rows.forEach(row => {
+      const rowEl = document.createElement('div');
+      rowEl.className = 'row';
+      rowEl.dataset.rowId = row.id;
+      rowEl.dataset.dayIdx = di;
+
+      const label = document.createElement('div');
+      label.className = 'row-label';
+      label.innerHTML = `
+        <div class="row-handle" title="Reorder position">
+          <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg>
+        </div>
+        <div class="row-color" style="background:${COLORS[row.color].raw}" title="Change color"></div>
+        <div class="row-name" contenteditable="true" spellcheck="false">${escapeHtml(row.name)}</div>
+        <div class="row-delete" title="Delete position">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </div>
+      `;
+      rowEl.appendChild(label);
+
+      const grid = document.createElement('div');
+      grid.className = 'row-grid';
+      grid.dataset.rowId = row.id;
+
+      const dayGrid = document.createElement('div');
+      dayGrid.className = 'day-grid' + (isWeekend ? ' weekend' : '');
+      dayGrid.dataset.dayIdx = di;
+      dayGrid.dataset.rowId = row.id;
+      dayGrid.style.width = dayPxW + 'px';
+
+      const showCells = config.cellW >= 4;
+      if (showCells) {
+        for (let i = 0; i < spd; i++) {
+          const cell = document.createElement('div');
+          cell.className = 'cell';
+          cell.style.width = config.cellW + 'px';
+          const mins = localSlotToMin(i + 1);
+          if (mins % 60 === 0) cell.classList.add('hour-start');
+          else if (mins % 30 === 0) cell.classList.add('half-hour');
+          dayGrid.appendChild(cell);
+        }
+      }
+
+      row.shifts.forEach(shift => {
+        if (shift.dayIdx !== di) return;
+        const s = Math.max(shift.startMin, config.startHourMin);
+        const e = Math.min(shift.endMin, config.endHourMin);
+        if (e <= s) return;
+        dayGrid.appendChild(createShiftEl(shift, row));
+      });
+
+      grid.appendChild(dayGrid);
+      rowEl.appendChild(grid);
+      section.appendChild(rowEl);
+      wireRowEvents(rowEl, row);
+    });
+
+    rowsEl.appendChild(section);
+    const targetInputs = header.querySelectorAll('.day-target-input');
+    targetInputs.forEach((targetInput) => {
+      const kind = targetInput.dataset.targetKind === 'dinner' ? 'dinner' : 'lunch';
+      const metaEl = header.querySelector(`.day-target-meta[data-target-kind="${kind}"]`);
+      const syncTargetMetric = () => {
+        if (!metaEl) return;
+        metaEl.innerHTML = buildDayTargetMetaHtml(di, kind);
+      };
+      targetInput.addEventListener('input', () => {
+        const digits = targetInput.value.replace(/[^\d]/g, '');
+        targetInput.value = digits ? formatTargetSales(digits) : '';
+        state.dayTargets[di] = { ...getDayTargetValue(di), [kind]: targetInput.value };
+        syncTargetMetric();
+      });
+      targetInput.addEventListener('change', () => {
+        const formatted = formatTargetSales(targetInput.value);
+        targetInput.value = formatted;
+        state.dayTargets[di] = { ...getDayTargetValue(di), [kind]: formatted };
+        syncTargetMetric();
+        saveSettings();
+      });
+      targetInput.addEventListener('blur', () => {
+        const formatted = formatTargetSales(targetInput.value);
+        targetInput.value = formatted;
+        state.dayTargets[di] = { ...getDayTargetValue(di), [kind]: formatted };
+        syncTargetMetric();
+        saveSettings();
+      });
+    });
+  }
+
+  const addBtn = document.createElement('div');
+  addBtn.className = 'add-row';
+  addBtn.innerHTML = `
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    Add position
+  `;
+  addBtn.addEventListener('click', addRow);
+  rowsEl.appendChild(addBtn);
+
+  updateStats();
+}
+
+function renderTableView() {
+  const tableViewEl = document.getElementById('table-view');
+  const dates = getOrderedDates();
+
+  const headCells = dates.map((date) => {
+    const meta = formatDayHeader(date);
+    return `<th>${meta.dow}<br><span style="font-family:'JetBrains Mono', monospace; color: var(--text);">${meta.date}</span></th>`;
+  }).join('');
+
+  const bodyRows = state.rows.map((row) => {
+    const dayCells = dates.map((_, dayIdx) => {
+      const dayShifts = getShiftsForRowDay(row, dayIdx);
+      const shiftsHtml = dayShifts.length
+        ? `<div class="table-shift-list">${dayShifts.map((shift) => {
+            const worker = (shift.workerName || '').trim() || 'Unassigned';
+            const hours = ((shift.endMin - shift.startMin) / 60).toFixed(2);
+            return `<div class="table-shift-item">
+              <div class="table-shift-worker">${escapeHtml(worker)}</div>
+              <div class="table-shift-time">${minToTime(shift.startMin)}-${minToTimeDisplay(shift.endMin)} · ${hours}h</div>
+            </div>`;
+          }).join('')}</div>`
+        : `<div class="table-day-empty">No shift</div>`;
+      const dayTotal = getDayTotalHours(dayShifts);
+      return `<td><div class="table-day">${shiftsHtml}${dayTotal ? `<div class="table-day-total">Day total: ${dayTotal}h</div>` : ''}</div></td>`;
+    }).join('');
+
+    return `<tr>
+      <td class="position-col">
+        <div class="table-position">
+          <div class="table-position-color" style="background:${COLORS[row.color].raw}"></div>
+          <div class="table-position-name">${escapeHtml(row.name)}</div>
+        </div>
+      </td>
+      ${dayCells}
+      <td><div class="table-total">${getRowTotalHours(row)}h</div></td>
+    </tr>`;
+  }).join('');
+
+  tableViewEl.innerHTML = `
+    <div class="table-shell">
+      <table class="schedule-table">
+        <thead>
+          <tr>
+            <th class="position-col">Position</th>
+            ${headCells}
+            <th>Total</th>
+          </tr>
+        </thead>
+        <tbody>${bodyRows}</tbody>
+      </table>
+    </div>
+  `;
+}
+
+function applyViewMode() {
+  const appEl = document.querySelector('.app');
+  const timelineBtn = document.getElementById('btn-view-timeline');
+  const tableBtn = document.getElementById('btn-view-table');
+  appEl.classList.toggle('view-table', state.viewMode === 'table');
+  timelineBtn.classList.toggle('active', state.viewMode === 'timeline');
+  tableBtn.classList.toggle('active', state.viewMode === 'table');
+}
+
+function renderApp() {
+  applyViewMode();
+  if (state.viewMode === 'timeline') {
+    renderHeader();
+    renderRows();
+    document.getElementById('table-view').innerHTML = '';
+  } else {
+    document.getElementById('rows').innerHTML = '';
+    renderTableView();
+    updateStats();
+  }
+}
+
+function createShiftEl(shift, row) {
+  const el = document.createElement('div');
+  el.className = 'shift';
+  el.dataset.shiftId = shift.id;
+  el.dataset.rowId = row.id;
+  const c = COLORS[row.color];
+  el.style.background = c.bg;
+  el.style.borderLeft = `3px solid ${c.raw}`;
+  el.style.color = c.raw;
+  updateShiftPosition(el, shift);
+
+  el.innerHTML = `
+    <div class="shift-handle left"></div>
+    <div class="shift-label"></div>
+    <div class="shift-handle right"></div>
+  `;
+  updateShiftContent(el, shift);
+  return el;
+}
+
+function updateShiftPosition(el, shift) {
+  // position is relative to the day-grid it lives in (local slot)
+  const startSlot = minToLocalSlot(shift.startMin);
+  const endSlot = minToLocalSlot(shift.endMin);
+  el.style.left = (startSlot * config.cellW) + 'px';
+  el.style.width = ((endSlot - startSlot) * config.cellW) + 'px';
+}
+
+function updateShiftContent(el, shift) {
+  const label = el.querySelector('.shift-label');
+  const duration = (shift.endMin - shift.startMin) / 60;
+  const workerName = (shift.workerName || '').trim();
+  const safeWorkerName = workerName ? `${escapeHtml(workerName)} · ` : '';
+  label.innerHTML = `${safeWorkerName}${minToTime(shift.startMin)}–${minToTimeDisplay(shift.endMin)} <span class="shift-time">(${duration.toFixed(2)}h)</span>`;
+}
+
+function refreshDayTargetMetrics() {
+  document.querySelectorAll('.day-section-header').forEach((headerEl) => {
+    const sectionEl = headerEl.closest('.day-section');
+    if (!sectionEl) return;
+    const dayIdx = Number(sectionEl.dataset.dayIdx);
+    if (!Number.isFinite(dayIdx)) return;
+    headerEl.querySelectorAll('.day-target-meta').forEach((metaEl) => {
+      const kind = metaEl.dataset.targetKind === 'dinner' ? 'dinner' : 'lunch';
+      metaEl.innerHTML = buildDayTargetMetaHtml(dayIdx, kind);
+    });
+  });
+}
+
+function updateStats() {
+  let count = 0, totalMin = 0;
+  state.rows.forEach(r => {
+    r.shifts.forEach(s => {
+      if (s.dayIdx >= 0 && s.dayIdx < dayCount()) {
+        count++;
+        totalMin += (s.endMin - s.startMin);
+      }
+    });
+  });
+  document.getElementById('stat-count').textContent = count;
+  document.getElementById('stat-hours').textContent = (totalMin / 60).toFixed(2);
+  refreshDayTargetMetrics();
+}
+
+function escapeHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function syncRowNameLabels(rowId, name) {
+  document.querySelectorAll(`.row[data-row-id="${rowId}"] .row-name`).forEach((nameEl) => {
+    if (nameEl === document.activeElement) return;
+    if (nameEl.textContent !== name) nameEl.textContent = name;
+  });
+}
+
+/* ===================== Row events ===================== */
+function wireRowEvents(rowEl, row) {
+  const handleEl = rowEl.querySelector('.row-handle');
+  const nameEl = rowEl.querySelector('.row-name');
+  nameEl.addEventListener('input', () => {
+    row.name = nameEl.textContent.trim() || 'Untitled';
+    syncRowNameLabels(row.id, row.name);
+  });
+  nameEl.addEventListener('blur', () => {
+    const val = nameEl.textContent.trim();
+    row.name = val || 'Untitled';
+    syncRowNameLabels(row.id, row.name);
+    saveSettings();
+  });
+  nameEl.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); nameEl.blur(); }
+  });
+
+  rowEl.querySelector('.row-delete').addEventListener('click', () => {
+    if (confirm(`Delete the "${row.name}" position?`)) {
+      state.rows = state.rows.filter(r => r.id !== row.id);
+      renderApp();
+      saveSettings();
+    }
+  });
+
+  rowEl.querySelector('.row-color').addEventListener('click', (e) => {
+    e.stopPropagation();
+    openColorMenu(e.currentTarget, row);
+  });
+
+  handleEl.addEventListener('mousedown', (e) => {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    e.stopPropagation();
+
+    const sectionEl = rowEl.closest('.day-section');
+    if (!sectionEl) return;
+    rowEl.classList.add('dragging-row');
+    document.body.style.cursor = 'grabbing';
+    document.body.style.userSelect = 'none';
+
+    function getDraggableRows() {
+      return [...sectionEl.querySelectorAll('.row')];
+    }
+
+    function onMove(ev) {
+      const otherRows = getDraggableRows().filter(el => el !== rowEl);
+      const targetRow = otherRows.find((candidate) => {
+        const rect = candidate.getBoundingClientRect();
+        return ev.clientY < rect.top + rect.height / 2;
+      });
+
+      if (targetRow) {
+        if (targetRow !== rowEl.nextElementSibling) sectionEl.insertBefore(rowEl, targetRow);
+      } else {
+        sectionEl.appendChild(rowEl);
+      }
+    }
+
+    function onUp() {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      rowEl.classList.remove('dragging-row');
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+
+      const orderedIds = getDraggableRows().map(el => el.dataset.rowId);
+      state.rows = orderedIds
+        .map(id => state.rows.find(r => r.id === id))
+        .filter(Boolean);
+      renderApp();
+      saveSettings();
+    }
+
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  });
+
+  // wire each day's sub-grid
+  rowEl.querySelectorAll('.day-grid').forEach(dg => wireDayGridEvents(dg, row));
+}
+
+/* ===================== Color menu ===================== */
+function openColorMenu(anchor, row) {
+  const menu = document.getElementById('color-menu');
+  menu.innerHTML = '';
+  COLORS.forEach((c, i) => {
+    const sw = document.createElement('div');
+    sw.className = 'color-swatch';
+    sw.style.background = c.raw;
+    if (i === row.color) sw.style.borderColor = 'var(--text)';
+    sw.addEventListener('click', () => {
+      row.color = i;
+      closeColorMenu();
+      renderApp();
+      saveSettings();
+    });
+    menu.appendChild(sw);
+  });
+  const rect = anchor.getBoundingClientRect();
+  menu.style.left = rect.left + 'px';
+  menu.style.top = (rect.bottom + 6) + 'px';
+  menu.classList.add('visible');
+  setTimeout(() => {
+    document.addEventListener('click', closeColorMenu, { once: true });
+  }, 0);
+}
+
+function closeColorMenu() {
+  document.getElementById('color-menu').classList.remove('visible');
+}
+
+/* ===================== Day-grid interactions (create shift) ===================== */
+function wireDayGridEvents(dayGrid, row) {
+  const dayIdx = parseInt(dayGrid.dataset.dayIdx, 10);
+
+  dayGrid.addEventListener('mousedown', (e) => {
+    if (e.target.closest('.shift')) return;
+    if (e.button !== 0) return;
+    e.preventDefault();
+
+    const gridRect = dayGrid.getBoundingClientRect();
+    const spd = slotsPerDay();
+    const clampLocal = (s) => Math.max(0, Math.min(spd, s));
+
+    const startSlot = clampLocal(Math.floor((e.clientX - gridRect.left) / config.cellW));
+    let curSlot = startSlot;
+
+    const preview = document.createElement('div');
+    preview.className = 'shift-preview';
+    preview.style.left = (startSlot * config.cellW) + 'px';
+    preview.style.width = config.cellW + 'px';
+    dayGrid.appendChild(preview);
+
+    showTooltip(e.clientX, e.clientY, minToTime(localSlotToMin(startSlot)));
+
+    function onMove(ev) {
+      curSlot = clampLocal(Math.round((ev.clientX - gridRect.left) / config.cellW));
+      const s = Math.min(startSlot, curSlot);
+      const en = Math.max(startSlot, curSlot);
+      preview.style.left = (s * config.cellW) + 'px';
+      preview.style.width = Math.max(config.cellW, (en - s) * config.cellW) + 'px';
+      showTooltip(ev.clientX, ev.clientY, `${minToTime(localSlotToMin(s))} – ${minToTimeDisplay(localSlotToMin(en))}`);
+    }
+
+    function onUp() {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      preview.remove();
+      hideTooltip();
+      const s = Math.min(startSlot, curSlot);
+      let en = Math.max(startSlot, curSlot);
+      if (en === s) en = s + 1;
+      if (en > spd) en = spd;
+      const shift = {
+        id: uid('s'),
+        dayIdx,
+        workerName: '',
+        startMin: localSlotToMin(s),
+        endMin: localSlotToMin(en),
+      };
+      row.shifts.push(shift);
+      const shiftEl = createShiftEl(shift, row);
+      dayGrid.appendChild(shiftEl);
+      updateStats();
+      saveSettings();
+    }
+
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  });
+}
+
+/* ===================== Shift drag (move/resize across days) ===================== */
+let suppressShiftClick = false;
+
+function getDayGridFromPoint(x, y) {
+  const el = document.elementFromPoint(x, y);
+  return el ? el.closest('.day-grid') : null;
+}
+
+document.addEventListener('mousedown', (e) => {
+  const shiftEl = e.target.closest('.shift');
+  if (!shiftEl) return;
+  if (e.button !== 0) return;
+
+  const rowId = shiftEl.dataset.rowId;
+  const shiftId = shiftEl.dataset.shiftId;
+  const row = state.rows.find(r => r.id === rowId);
+  const shift = row.shifts.find(s => s.id === shiftId);
+
+  const handle = e.target.closest('.shift-handle');
+  const mode = handle ? (handle.classList.contains('left') ? 'resize-left' : 'resize-right') : 'move';
+
+  e.preventDefault();
+  e.stopPropagation();
+
+  const startMouseX = e.clientX;
+  const originalDayIdx = shift.dayIdx;
+  const originalStartMin = shift.startMin;
+  const originalEndMin = shift.endMin;
+  const origStartSlot = minToLocalSlot(originalStartMin);
+  const origEndSlot = minToLocalSlot(originalEndMin);
+  const origLen = origEndSlot - origStartSlot;
+  let moved = false;
+
+  shiftEl.classList.add('dragging');
+  document.body.style.cursor = mode === 'move' ? 'grabbing' : 'ew-resize';
+
+  function onMove(ev) {
+    const dx = ev.clientX - startMouseX;
+    if (Math.abs(dx) > 3) moved = true;
+    const dSlot = Math.round(dx / config.cellW);
+    const spd = slotsPerDay();
+    const previousDayIdx = shift.dayIdx;
+
+    if (mode === 'move') {
+      const hoveredDayGrid = getDayGridFromPoint(ev.clientX, ev.clientY) || shiftEl.closest('.day-grid');
+      const nextDayIdx = hoveredDayGrid ? parseInt(hoveredDayGrid.dataset.dayIdx, 10) : shift.dayIdx;
+      const localStart = Math.max(0, Math.min(spd - origLen, origStartSlot + dSlot));
+      shift.dayIdx = Math.max(0, Math.min(dayCount() - 1, nextDayIdx));
+      shift.startMin = localSlotToMin(localStart);
+      shift.endMin = localSlotToMin(localStart + origLen);
+    } else if (mode === 'resize-left') {
+      const nextStartSlot = Math.max(0, Math.min(origEndSlot - 1, origStartSlot + dSlot));
+      shift.dayIdx = originalDayIdx;
+      shift.startMin = localSlotToMin(nextStartSlot);
+      shift.endMin = originalEndMin;
+    } else {
+      const nextEndSlot = Math.max(origStartSlot + 1, Math.min(spd, origEndSlot + dSlot));
+      shift.dayIdx = originalDayIdx;
+      shift.startMin = originalStartMin;
+      shift.endMin = localSlotToMin(nextEndSlot);
+    }
+
+    // If day changed, move DOM node to new day's grid
+    if (previousDayIdx !== shift.dayIdx) {
+      const newDayGrid = document.querySelector(`.day-grid[data-row-id="${row.id}"][data-day-idx="${shift.dayIdx}"]`);
+      if (newDayGrid) newDayGrid.appendChild(shiftEl);
+    }
+
+    updateShiftPosition(shiftEl, shift);
+    updateShiftContent(shiftEl, shift);
+
+    // Day label in tooltip
+    const startDate = parseISO(state.dateStart);
+    const thisDate = addDays(startDate, shift.dayIdx);
+    const dateStr = `${MON[thisDate.getMonth()]} ${thisDate.getDate()}`;
+    showTooltip(ev.clientX, ev.clientY,
+      `${dateStr} · ${minToTime(shift.startMin)}–${minToTimeDisplay(shift.endMin)} · ${((shift.endMin - shift.startMin)/60).toFixed(2)}h`);
+  }
+
+  function onUp() {
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', onUp);
+    shiftEl.classList.remove('dragging');
+    document.body.style.cursor = '';
+    hideTooltip();
+    suppressShiftClick = moved;
+    if (moved) setTimeout(() => { suppressShiftClick = false; }, 0);
+    updateStats();
+    saveSettings();
+  }
+
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup', onUp);
+});
+
+document.addEventListener('click', (e) => {
+  const shiftEl = e.target.closest('.shift');
+  if (!shiftEl || e.target.closest('.shift-handle')) return;
+  if (suppressShiftClick) return;
+
+  const rowId = shiftEl.dataset.rowId;
+  const shiftId = shiftEl.dataset.shiftId;
+  const row = state.rows.find(r => r.id === rowId);
+  if (!row) return;
+
+  const shift = row.shifts.find(s => s.id === shiftId);
+  if (!shift) return;
+
+  const nextName = prompt('Enter the worker name.', shift.workerName || '');
+  if (nextName === null) return;
+
+  shift.workerName = nextName.trim();
+  updateShiftContent(shiftEl, shift);
+  saveSettings();
+});
+
+/* Right-click to delete */
+document.addEventListener('contextmenu', (e) => {
+  const shiftEl = e.target.closest('.shift');
+  if (!shiftEl) return;
+  e.preventDefault();
+  const rowId = shiftEl.dataset.rowId;
+  const shiftId = shiftEl.dataset.shiftId;
+  const row = state.rows.find(r => r.id === rowId);
+  if (!row) return;
+  if (!confirm('Delete this shift?')) return;
+  row.shifts = row.shifts.filter(s => s.id !== shiftId);
+  shiftEl.remove();
+  updateStats();
+  saveSettings();
+});
+
+/* ===================== Tooltip ===================== */
+const tooltipEl = document.getElementById('tooltip');
+function showTooltip(x, y, text) {
+  tooltipEl.textContent = text;
+  tooltipEl.style.left = (x + 14) + 'px';
+  tooltipEl.style.top = (y + 14) + 'px';
+  tooltipEl.classList.add('visible');
+}
+function hideTooltip() { tooltipEl.classList.remove('visible'); }
+
+/* ===================== Zoom indicator ===================== */
+const zoomIndicator = document.getElementById('zoom-indicator');
+let zoomTimer = null;
+function showZoom(text) {
+  zoomIndicator.textContent = text;
+  zoomIndicator.classList.add('visible');
+  clearTimeout(zoomTimer);
+  zoomTimer = setTimeout(() => zoomIndicator.classList.remove('visible'), 700);
+}
+
+/* ===================== Ctrl + Wheel zoom ===================== */
+const timelineWrap = document.getElementById('timeline-wrap');
+timelineWrap.addEventListener('wheel', (e) => {
+  if (state.viewMode !== 'timeline') return;
+  if (!e.ctrlKey && !e.metaKey) return;
+  e.preventDefault();
+
+  const labelW = 200;
+  const wrapRect = timelineWrap.getBoundingClientRect();
+  const mouseX = e.clientX - wrapRect.left;
+  const gridMouseX = mouseX - labelW + timelineWrap.scrollLeft;
+  const slotUnderCursor = gridMouseX / config.cellW;
+
+  const oldCellW = config.cellW;
+  const factor = e.deltaY < 0 ? 1.15 : 1 / 1.15;
+  let newCellW = oldCellW * factor;
+  newCellW = Math.max(MIN_CELL_W, Math.min(MAX_CELL_W, newCellW));
+
+  if (Math.abs(newCellW - oldCellW) < 0.01) return;
+  config.cellW = newCellW;
+
+  renderApp();
+
+  const newGridMouseX = slotUnderCursor * config.cellW;
+  timelineWrap.scrollLeft = newGridMouseX - (mouseX - labelW);
+
+  saveSettings();
+  showZoom(`Zoom ${Math.round(config.cellW / DEFAULT_CELL_W * 100)}%`);
+}, { passive: false });
+
+/* ===================== Title ===================== */
+const titleEl = document.getElementById('doc-title');
+titleEl.textContent = state.title;
+titleEl.addEventListener('blur', () => {
+  const v = titleEl.textContent.trim();
+  state.title = v || 'Untitled';
+  if (!v) titleEl.textContent = state.title;
+  document.title = state.title;
+  saveSettings();
+});
+titleEl.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') { e.preventDefault(); titleEl.blur(); }
+});
+document.title = state.title;
+
+/* ===================== Date range — LIVE update ===================== */
+const dateStartEl = document.getElementById('date-start');
+const dateEndEl = document.getElementById('date-end');
+const dateSpanEl = document.getElementById('date-span');
+const printWeekEl = document.getElementById('print-week');
+
+dateStartEl.value = state.dateStart;
+dateEndEl.value = state.dateEnd;
+
+function updateDateSpan() {
+  const days = dayCount();
+  dateSpanEl.textContent = days > 0 ? `(Weekly view · ${days}d)` : '';
+  const startDate = parseISO(state.dateStart);
+  const endDate = parseISO(state.dateEnd);
+  if (!startDate || !endDate) {
+    printWeekEl.textContent = '';
+    return;
+  }
+  printWeekEl.textContent = `${DOW[startDate.getDay()]}, ${MON[startDate.getMonth()]} ${startDate.getDate()} ${startDate.getFullYear()} - ${DOW[endDate.getDay()]}, ${MON[endDate.getMonth()]} ${endDate.getDate()} ${endDate.getFullYear()}`;
+}
+
+function handleDateChange() {
+  const days = dayCount();
+
+  // Drop shifts that fall outside the new range, and clamp dayIdx
+  let dropped = 0;
+  state.rows.forEach(row => {
+    const before = row.shifts.length;
+    row.shifts = row.shifts.filter(s => s.dayIdx >= 0 && s.dayIdx < days);
+    dropped += (before - row.shifts.length);
+  });
+
+  // If we cropped the START (moved start forward), shift all dayIdx accordingly
+  // This function is called only after state.dateStart/dateEnd were set,
+  // so we handle shifting in the setter below.
+
+  updateDateSpan();
+  renderApp();
+  saveSettings();
+}
+
+function applySelectedWeek(dateIso) {
+  const selectedDate = parseISO(dateIso);
+  const oldStart = parseISO(state.dateStart);
+  if (!selectedDate || !oldStart) return;
+
+  const weeklyRange = getWeekRangeFromDate(selectedDate);
+  const newStart = weeklyRange.start;
+  const newEnd = weeklyRange.end;
+  const dayDelta = Math.round((newStart - oldStart) / 86400000);
+
+  state.dateStart = toISO(newStart);
+  state.dateEnd = toISO(newEnd);
+  dateStartEl.value = state.dateStart;
+  dateEndEl.value = state.dateEnd;
+
+  state.rows.forEach((row) => {
+    row.shifts.forEach((shift) => { shift.dayIdx -= dayDelta; });
+  });
+
+  handleDateChange();
+}
+
+dateStartEl.addEventListener('change', () => {
+  if (!dateStartEl.value) return;
+  applySelectedWeek(dateStartEl.value);
+});
+
+dateEndEl.addEventListener('change', () => {
+  if (!dateEndEl.value) return;
+  applySelectedWeek(dateEndEl.value);
+});
+
+updateDateSpan();
+
+/* ===================== Add / Clear ===================== */
+function exportCurrentStateAsJson() {
+  saveSettings();
+
+  const payload = {
+    version: 1,
+    savedAt: new Date().toISOString(),
+    config: {
+      slotMin: config.slotMin,
+      startHourMin: config.startHourMin,
+      endHourMin: config.endHourMin,
+      cellW: config.cellW,
+    },
+    state: JSON.parse(JSON.stringify(state)),
+  };
+
+  const safeTitle = (state.title || 'shift-planner')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'shift-planner';
+  const datePart = state.dateStart === state.dateEnd
+    ? state.dateStart
+    : `${state.dateStart}_to_${state.dateEnd}`;
+  const filename = `${safeTitle}_${datePart}.json`;
+
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 0);
+}
+
+function closeDataMenu() {
+  const wrap = document.getElementById('data-menu');
+  const button = document.getElementById('btn-data-menu');
+  wrap.classList.remove('open');
+  button.setAttribute('aria-expanded', 'false');
+}
+
+function isEditableTarget(target) {
+  if (!(target instanceof HTMLElement)) return false;
+  return target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName);
+}
+
+function undoPlannerChange() {
+  if (!undoStack.length) return;
+  const previousSnapshot = undoStack.pop();
+  redoStack.push(currentHistorySnapshot);
+  isApplyingHistory = true;
+  applyPlannerSnapshot(previousSnapshot);
+  currentHistorySnapshot = previousSnapshot;
+  isApplyingHistory = false;
+  saveSettings();
+}
+
+function redoPlannerChange() {
+  if (!redoStack.length) return;
+  const nextSnapshot = redoStack.pop();
+  undoStack.push(currentHistorySnapshot);
+  isApplyingHistory = true;
+  applyPlannerSnapshot(nextSnapshot);
+  currentHistorySnapshot = nextSnapshot;
+  isApplyingHistory = false;
+  saveSettings();
+}
+
+function toggleDataMenu(forceOpen) {
+  const wrap = document.getElementById('data-menu');
+  const button = document.getElementById('btn-data-menu');
+  const nextOpen = typeof forceOpen === 'boolean' ? forceOpen : !wrap.classList.contains('open');
+  wrap.classList.toggle('open', nextOpen);
+  button.setAttribute('aria-expanded', String(nextOpen));
+}
+
+function closeClearMenu() {
+  const wrap = document.getElementById('clear-menu');
+  const button = document.getElementById('btn-clear-menu');
+  wrap.classList.remove('open');
+  button.setAttribute('aria-expanded', 'false');
+}
+
+function toggleClearMenu(forceOpen) {
+  const wrap = document.getElementById('clear-menu');
+  const button = document.getElementById('btn-clear-menu');
+  const nextOpen = typeof forceOpen === 'boolean' ? forceOpen : !wrap.classList.contains('open');
+  wrap.classList.toggle('open', nextOpen);
+  button.setAttribute('aria-expanded', String(nextOpen));
+}
+
+const ROSTER_HEADERS = [
+  '', 'Position',
+  'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN',
+  'Total Hours',
+];
+const ROSTER_DAY_COLUMNS = {
+  1: 'C',
+  2: 'D',
+  3: 'E',
+  4: 'F',
+  5: 'G',
+  6: 'H',
+  0: 'I',
+};
+
+function pad2(n) {
+  return String(n).padStart(2, '0');
+}
+
+function formatIsoForFilename(iso) {
+  return (iso || '').replace(/[^0-9]/g, '') || 'undated';
+}
+
+function indexToCol(idx) {
+  let n = idx + 1;
+  let out = '';
+  while (n > 0) {
+    const rem = (n - 1) % 26;
+    out = String.fromCharCode(65 + rem) + out;
+    n = Math.floor((n - 1) / 26);
+  }
+  return out;
+}
+
+function getShiftDisplayNameFallback(rowId, shiftId) {
+  const shiftEl = document.querySelector(`.shift[data-row-id="${rowId}"][data-shift-id="${shiftId}"]`);
+  if (!shiftEl) return '';
+  const labelEl = shiftEl.querySelector('.shift-label');
+  if (!labelEl) return '';
+  const raw = (labelEl.textContent || '').trim();
+  const dotIdx = raw.indexOf('·');
+  if (dotIdx === -1) return '';
+  return raw.slice(0, dotIdx).trim();
+}
+
+function buildRosterExportRows() {
+  const maxDays = Math.min(dayCount(), 7);
+  const exportRows = [];
+  const dayTotalsMin = { C: 0, D: 0, E: 0, F: 0, G: 0, H: 0, I: 0 };
+
+  state.rows.forEach((row) => {
+    const serviceCells = {};
+    const dayHours = {};
+    let totalMin = 0;
+
+    row.shifts.forEach((shift) => {
+      if (shift.dayIdx < 0 || shift.dayIdx >= maxDays) return;
+      const date = addDays(parseISO(state.dateStart) || new Date(), shift.dayIdx);
+      const dayCol = ROSTER_DAY_COLUMNS[date.getDay()];
+      if (!dayCol) return;
+
+      const workerName = ((shift.workerName || '').trim() || getShiftDisplayNameFallback(row.id, shift.id)).trim();
+      serviceCells[dayCol] = serviceCells[dayCol] || [];
+      serviceCells[dayCol].push(
+        workerName
+          ? `${workerName} ${minToTime(shift.startMin)}-${minToTimeDisplay(shift.endMin)}`
+          : `${minToTime(shift.startMin)}-${minToTimeDisplay(shift.endMin)}`
+      );
+
+      const shiftMin = Math.max(0, shift.endMin - shift.startMin);
+      dayHours[dayCol] = (dayHours[dayCol] || 0) + shiftMin;
+      dayTotalsMin[dayCol] = (dayTotalsMin[dayCol] || 0) + shiftMin;
+      totalMin += shiftMin;
+    });
+
+    exportRows.push({
+      section: '1F',
+      position: row.name,
+      serviceCells,
+      dayHours,
+      totalHours: totalMin ? (totalMin / 60).toFixed(2) : '',
+    });
+  });
+
+  return { rows: exportRows, dayTotals: dayTotalsMin };
+}
+
+function buildEmployeeExportRows() {
+  const maxDays = Math.min(dayCount(), 7);
+  const employeeMap = new Map();
+  const dayTotalsMin = { C: 0, D: 0, E: 0, F: 0, G: 0, H: 0, I: 0 };
+  const startDate = parseISO(state.dateStart) || new Date();
+
+  state.rows.forEach((row) => {
+    row.shifts.forEach((shift) => {
+      if (shift.dayIdx < 0 || shift.dayIdx >= maxDays) return;
+      const date = addDays(startDate, shift.dayIdx);
+      const dayCol = ROSTER_DAY_COLUMNS[date.getDay()];
+      if (!dayCol) return;
+
+      const employeeName = ((shift.workerName || '').trim() || 'Unassigned');
+      if (!employeeMap.has(employeeName)) {
+        employeeMap.set(employeeName, {
+          employee: employeeName,
+          serviceCells: {},
+          totalMin: 0,
+        });
+      }
+
+      const shiftMin = Math.max(0, shift.endMin - shift.startMin);
+      const employeeRow = employeeMap.get(employeeName);
+      employeeRow.serviceCells[dayCol] = employeeRow.serviceCells[dayCol] || [];
+      employeeRow.serviceCells[dayCol].push(
+        `${row.name} ${minToTime(shift.startMin)}-${minToTimeDisplay(shift.endMin)}`
+      );
+      employeeRow.totalMin += shiftMin;
+      dayTotalsMin[dayCol] = (dayTotalsMin[dayCol] || 0) + shiftMin;
+    });
+  });
+
+  const rows = [...employeeMap.values()]
+    .sort((a, b) => a.employee.localeCompare(b.employee))
+    .map((row) => ({
+      employee: row.employee,
+      serviceCells: row.serviceCells,
+      totalHours: row.totalMin ? (row.totalMin / 60).toFixed(2) : '',
+    }));
+
+  return { rows, dayTotals: dayTotalsMin };
+}
+
+function buildTimelineExportRows() {
+  const days = [];
+  const startDate = parseISO(state.dateStart) || new Date();
+
+  for (let i = 0; i < dayCount(); i++) {
+    const date = addDays(startDate, i);
+    days.push({
+      idx: i,
+      iso: toISO(date),
+      label: `${DOW[date.getDay()]} ${pad2(date.getDate())} ${MON[date.getMonth()]}`,
+    });
+  }
+
+  const rows = state.rows.map((row) => {
+    const cells = days.map((day) => {
+      const dayShifts = row.shifts
+        .filter((shift) => shift.dayIdx === day.idx)
+        .sort((a, b) => a.startMin - b.startMin);
+      const lines = dayShifts.map((shift) => {
+        const worker = (shift.workerName || '').trim();
+        const hours = ((shift.endMin - shift.startMin) / 60).toFixed(2);
+        return worker
+          ? `${worker} ${minToTime(shift.startMin)}-${minToTimeDisplay(shift.endMin)} (${hours}h)`
+          : `${minToTime(shift.startMin)}-${minToTimeDisplay(shift.endMin)} (${hours}h)`;
+      });
+      return lines.join('\n');
+    });
+
+    const totalHours = row.shifts
+      .reduce((sum, shift) => sum + Math.max(0, shift.endMin - shift.startMin), 0) / 60;
+
+    return {
+      position: row.name,
+      cells,
+      totalHours: totalHours ? totalHours.toFixed(2) : '',
+    };
+  });
+
+  return { days, rows };
+}
+
+function escapeXml(text) {
+  return String(text)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+}
+
+function colToIndex(col) {
+  let n = 0;
+  for (let i = 0; i < col.length; i++) n = n * 26 + (col.charCodeAt(i) - 64);
+  return n;
+}
+
+function makeSharedStringTable(strings) {
+  const map = new Map();
+  const items = [];
+
+  strings.forEach((text) => {
+    const key = String(text ?? '');
+    if (map.has(key)) return;
+    map.set(key, items.length);
+    items.push(key);
+  });
+
+  const xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="${items.length}" uniqueCount="${items.length}">${items.map((text) => `<si><t xml:space="preserve">${escapeXml(text)}</t></si>`).join('')}</sst>`;
+
+  return { map, xml };
+}
+
+function makeStringCell(ref, text, sharedStrings, styleId = 0) {
+  if (text === '' || text == null) return '';
+  const key = String(text);
+  const idx = sharedStrings.map.get(key);
+  return `<c r="${ref}" t="s"><v>${idx}</v></c>`;
+}
+
+function makeNumberCell(ref, value, styleId = 0) {
+  if (value === '' || value == null) return '';
+  return `<c r="${ref}"><v>${escapeXml(String(value))}</v></c>`;
+}
+
+function buildRosterSheetXml() {
+  const { rows, dayTotals } = buildRosterExportRows();
+  const endRow = rows.length + 1;
+  const totalRow = endRow + 2;
+  const stringPool = [
+    'Section', 'Position', 'Name A', 'Name B',
+    'MON (L)', 'MON (D)', 'TUE (L)', 'TUE (D)', 'WED (L)', 'WED (D)',
+    'THU (L)', 'THU (D)', 'FRI (L)', 'FRI (D)', 'SAT (L)', 'SAT (D)',
+    'SUN (L)', 'SUN (D)', 'Total Hours', '1F'
+  ];
+
+  rows.forEach((row) => {
+    stringPool.push(row.section, row.position, row.nameA, row.nameB);
+    Object.values(row.serviceCells).forEach((lines) => stringPool.push(lines.join('\n')));
+  });
+
+  const sharedStrings = makeSharedStringTable(stringPool);
+  const rowXml = [];
+  const grandTotal = rows.reduce((sum, row) => sum + (parseFloat(row.totalHours) || 0), 0);
+
+  rowXml.push(
+    `<row r="1">` +
+      makeStringCell('A1', 'Section', sharedStrings) +
+      makeStringCell('B1', 'Position', sharedStrings) +
+      makeStringCell('C1', 'Name A', sharedStrings) +
+      makeStringCell('D1', 'Name B', sharedStrings) +
+      makeStringCell('E1', 'MON (L)', sharedStrings) +
+      makeStringCell('F1', 'MON (D)', sharedStrings) +
+      makeStringCell('G1', 'TUE (L)', sharedStrings) +
+      makeStringCell('H1', 'TUE (D)', sharedStrings) +
+      makeStringCell('I1', 'WED (L)', sharedStrings) +
+      makeStringCell('J1', 'WED (D)', sharedStrings) +
+      makeStringCell('K1', 'THU (L)', sharedStrings) +
+      makeStringCell('L1', 'THU (D)', sharedStrings) +
+      makeStringCell('M1', 'FRI (L)', sharedStrings) +
+      makeStringCell('N1', 'FRI (D)', sharedStrings) +
+      makeStringCell('O1', 'SAT (L)', sharedStrings) +
+      makeStringCell('P1', 'SAT (D)', sharedStrings) +
+      makeStringCell('Q1', 'SUN (L)', sharedStrings) +
+      makeStringCell('R1', 'SUN (D)', sharedStrings) +
+      makeStringCell('S1', 'Total Hours', sharedStrings) +
+    `</row>`
+  );
+
+  rows.forEach((row, idx) => {
+    const r = idx + 2;
+    let cells = '';
+    cells += makeStringCell(`A${r}`, row.section, sharedStrings);
+    cells += makeStringCell(`B${r}`, row.position, sharedStrings);
+    cells += makeStringCell(`C${r}`, row.nameA, sharedStrings);
+    cells += makeStringCell(`D${r}`, row.nameB, sharedStrings);
+
+    Object.entries(row.serviceCells).forEach(([col, lines]) => {
+      cells += makeStringCell(`${col}${r}`, lines.join('\n'), sharedStrings);
+    });
+
+    cells += makeNumberCell(`S${r}`, row.totalHours);
+    rowXml.push(`<row r="${r}">${cells}</row>`);
+  });
+
+  rowXml.push(
+    `<row r="${totalRow}">` +
+      makeStringCell(`B${totalRow}`, 'Total Hours', sharedStrings) +
+      makeNumberCell(`E${totalRow}`, dayTotals.C ? (dayTotals.C / 60).toFixed(2) : '') +
+      makeNumberCell(`G${totalRow}`, dayTotals.D ? (dayTotals.D / 60).toFixed(2) : '') +
+      makeNumberCell(`I${totalRow}`, dayTotals.E ? (dayTotals.E / 60).toFixed(2) : '') +
+      makeNumberCell(`K${totalRow}`, dayTotals.F ? (dayTotals.F / 60).toFixed(2) : '') +
+      makeNumberCell(`M${totalRow}`, dayTotals.G ? (dayTotals.G / 60).toFixed(2) : '') +
+      makeNumberCell(`O${totalRow}`, dayTotals.H ? (dayTotals.H / 60).toFixed(2) : '') +
+      makeNumberCell(`Q${totalRow}`, dayTotals.I ? (dayTotals.I / 60).toFixed(2) : '') +
+      makeNumberCell(`S${totalRow}`, grandTotal ? grandTotal.toFixed(2) : '') +
+    `</row>`
+  );
+
+  const sheetXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+  <dimension ref="A1:S${totalRow}"/>
+  <sheetViews><sheetView workbookViewId="0"/></sheetViews>
+  <sheetFormatPr defaultRowHeight="20"/>
+  <sheetData>${rowXml.join('')}</sheetData>
+</worksheet>`;
+
+  return { sheetXml, sharedStringsXml: sharedStrings.xml };
+}
+
+function buildRosterStylesXml() {
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+  <numFmts count="0"/>
+  <fonts count="2">
+    <font><sz val="11"/><color rgb="FF2F2F2C"/><name val="Calibri"/><family val="2"/></font>
+    <font><b/><sz val="11"/><color rgb="FF2F2F2C"/><name val="Calibri"/><family val="2"/></font>
+  </fonts>
+  <fills count="3">
+    <fill><patternFill patternType="none"/></fill>
+    <fill><patternFill patternType="gray125"/></fill>
+    <fill><patternFill patternType="solid"><fgColor rgb="FFF3F1EB"/><bgColor indexed="64"/></patternFill></fill>
+  </fills>
+  <borders count="2">
+    <border><left/><right/><top/><bottom/><diagonal/></border>
+    <border>
+      <left style="thin"><color rgb="FFD9D9D6"/></left>
+      <right style="thin"><color rgb="FFD9D9D6"/></right>
+      <top style="thin"><color rgb="FFD9D9D6"/></top>
+      <bottom style="thin"><color rgb="FFD9D9D6"/></bottom>
+      <diagonal/>
+    </border>
+  </borders>
+  <cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
+  <cellXfs count="4">
+    <xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>
+    <xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
+    <xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment vertical="center"/></xf>
+    <xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>
+  </cellXfs>
+  <cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>
+  <dxfs count="0"/>
+  <tableStyles count="0" defaultTableStyle="TableStyleMedium9" defaultPivotStyle="PivotStyleLight16"/>
+</styleSheet>`;
+}
+
+function buildCrc32Table() {
+  const table = new Uint32Array(256);
+  for (let i = 0; i < 256; i++) {
+    let c = i;
+    for (let j = 0; j < 8; j++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+    table[i] = c >>> 0;
+  }
+  return table;
+}
+
+const CRC32_TABLE = buildCrc32Table();
+
+function crc32(bytes) {
+  let crc = 0xFFFFFFFF;
+  for (let i = 0; i < bytes.length; i++) crc = CRC32_TABLE[(crc ^ bytes[i]) & 0xFF] ^ (crc >>> 8);
+  return (crc ^ 0xFFFFFFFF) >>> 0;
+}
+
+function dateToDosParts(date) {
+  const year = Math.max(1980, date.getFullYear());
+  const dosTime = (date.getSeconds() >> 1) | (date.getMinutes() << 5) | (date.getHours() << 11);
+  const dosDate = date.getDate() | ((date.getMonth() + 1) << 5) | ((year - 1980) << 9);
+  return { dosTime, dosDate };
+}
+
+function concatUint8Arrays(chunks) {
+  const total = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
+  const out = new Uint8Array(total);
+  let offset = 0;
+  chunks.forEach((chunk) => {
+    out.set(chunk, offset);
+    offset += chunk.length;
+  });
+  return out;
+}
+
+function createZip(files) {
+  const encoder = new TextEncoder();
+  const localParts = [];
+  const centralParts = [];
+  let offset = 0;
+  const now = dateToDosParts(new Date());
+
+  files.forEach((file) => {
+    const nameBytes = encoder.encode(file.name);
+    const dataBytes = encoder.encode(file.text);
+    const crc = crc32(dataBytes);
+
+    const localHeader = new Uint8Array(30 + nameBytes.length);
+    const localView = new DataView(localHeader.buffer);
+    localView.setUint32(0, 0x04034b50, true);
+    localView.setUint16(4, 20, true);
+    localView.setUint16(6, 0, true);
+    localView.setUint16(8, 0, true);
+    localView.setUint16(10, now.dosTime, true);
+    localView.setUint16(12, now.dosDate, true);
+    localView.setUint32(14, crc, true);
+    localView.setUint32(18, dataBytes.length, true);
+    localView.setUint32(22, dataBytes.length, true);
+    localView.setUint16(26, nameBytes.length, true);
+    localView.setUint16(28, 0, true);
+    localHeader.set(nameBytes, 30);
+
+    const centralHeader = new Uint8Array(46 + nameBytes.length);
+    const centralView = new DataView(centralHeader.buffer);
+    centralView.setUint32(0, 0x02014b50, true);
+    centralView.setUint16(4, 20, true);
+    centralView.setUint16(6, 20, true);
+    centralView.setUint16(8, 0, true);
+    centralView.setUint16(10, 0, true);
+    centralView.setUint16(12, now.dosTime, true);
+    centralView.setUint16(14, now.dosDate, true);
+    centralView.setUint32(16, crc, true);
+    centralView.setUint32(20, dataBytes.length, true);
+    centralView.setUint32(24, dataBytes.length, true);
+    centralView.setUint16(28, nameBytes.length, true);
+    centralView.setUint16(30, 0, true);
+    centralView.setUint16(32, 0, true);
+    centralView.setUint16(34, 0, true);
+    centralView.setUint16(36, 0, true);
+    centralView.setUint32(38, 0, true);
+    centralView.setUint32(42, offset, true);
+    centralHeader.set(nameBytes, 46);
+
+    localParts.push(localHeader, dataBytes);
+    centralParts.push(centralHeader);
+    offset += localHeader.length + dataBytes.length;
+  });
+
+  const centralDir = concatUint8Arrays(centralParts);
+  const localData = concatUint8Arrays(localParts);
+  const end = new Uint8Array(22);
+  const endView = new DataView(end.buffer);
+  endView.setUint32(0, 0x06054b50, true);
+  endView.setUint16(4, 0, true);
+  endView.setUint16(6, 0, true);
+  endView.setUint16(8, files.length, true);
+  endView.setUint16(10, files.length, true);
+  endView.setUint32(12, centralDir.length, true);
+  endView.setUint32(16, localData.length, true);
+  endView.setUint16(20, 0, true);
+
+  return concatUint8Arrays([localData, centralDir, end]);
+}
+
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 0);
+}
+
+function makeInlineStringCell(ref, text, styleId = 0) {
+  if (text === '' || text == null) return '';
+  const body = escapeXml(String(text)).replace(/\n/g, '&#10;');
+  return `<c r="${ref}" t="inlineStr"${styleId ? ` s="${styleId}"` : ''}><is><t xml:space="preserve">${body}</t></is></c>`;
+}
+
+function makeNumericCell(ref, value, styleId = 0) {
+  if (value === '' || value == null) return '';
+  return `<c r="${ref}"${styleId ? ` s="${styleId}"` : ''}><v>${escapeXml(String(value))}</v></c>`;
+}
+
+function buildRosterXlsxSheetXml() {
+  const { rows, dayTotals } = buildRosterExportRows();
+  const grandTotal = rows.reduce((sum, row) => sum + (parseFloat(row.totalHours) || 0), 0);
+  const cols = ['A','B','C','D','E','F','G','H','I','J'];
+  const headers = [
+    'Section', 'Position',
+    'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN',
+    'Total Hours'
+  ];
+  const xmlRows = [];
+
+  xmlRows.push(
+    `<row r="1" ht="24" customHeight="1">` +
+      headers.map((text, idx) => makeInlineStringCell(`${cols[idx]}1`, text, 1)).join('') +
+    `</row>`
+  );
+
+  rows.forEach((row, idx) => {
+    const r = idx + 2;
+    const values = [
+      row.section,
+      row.position,
+      (row.serviceCells.C || []).join('\n'),
+      (row.serviceCells.D || []).join('\n'),
+      (row.serviceCells.E || []).join('\n'),
+      (row.serviceCells.F || []).join('\n'),
+      (row.serviceCells.G || []).join('\n'),
+      (row.serviceCells.H || []).join('\n'),
+      (row.serviceCells.I || []).join('\n'),
+    ];
+
+    let rowXml = '<row r="' + r + '" ht="88" customHeight="1">';
+    values.forEach((text, cellIdx) => {
+      const styleId = cellIdx >= 2 ? 2 : 0;
+      rowXml += makeInlineStringCell(`${cols[cellIdx]}${r}`, text, styleId);
+    });
+    rowXml += makeNumericCell(`J${r}`, row.totalHours || '', 3);
+    rowXml += '</row>';
+    xmlRows.push(rowXml);
+  });
+
+  const totalRow = rows.length + 3;
+  xmlRows.push(
+    `<row r="${totalRow}" ht="24" customHeight="1">` +
+      makeInlineStringCell(`B${totalRow}`, 'Total Hours', 1) +
+      makeNumericCell(`C${totalRow}`, dayTotals.C ? (dayTotals.C / 60).toFixed(2) : '', 3) +
+      makeNumericCell(`D${totalRow}`, dayTotals.D ? (dayTotals.D / 60).toFixed(2) : '', 3) +
+      makeNumericCell(`E${totalRow}`, dayTotals.E ? (dayTotals.E / 60).toFixed(2) : '', 3) +
+      makeNumericCell(`F${totalRow}`, dayTotals.F ? (dayTotals.F / 60).toFixed(2) : '', 3) +
+      makeNumericCell(`G${totalRow}`, dayTotals.G ? (dayTotals.G / 60).toFixed(2) : '', 3) +
+      makeNumericCell(`H${totalRow}`, dayTotals.H ? (dayTotals.H / 60).toFixed(2) : '', 3) +
+      makeNumericCell(`I${totalRow}`, dayTotals.I ? (dayTotals.I / 60).toFixed(2) : '', 3) +
+      makeNumericCell(`J${totalRow}`, grandTotal ? grandTotal.toFixed(2) : '0.00', 3) +
+    `</row>`
+  );
+
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+  <dimension ref="A1:J${totalRow}"/>
+  <sheetViews><sheetView workbookViewId="0"/></sheetViews>
+  <sheetFormatPr defaultRowHeight="20"/>
+  <cols>
+    <col min="1" max="1" width="12" customWidth="1"/>
+    <col min="2" max="2" width="22" customWidth="1"/>
+    <col min="3" max="9" width="24" customWidth="1"/>
+    <col min="10" max="10" width="12" customWidth="1"/>
+  </cols>
+  <sheetData>${xmlRows.join('')}</sheetData>
+</worksheet>`;
+}
+
+function buildEmployeeXlsxSheetXml() {
+  const { rows, dayTotals } = buildEmployeeExportRows();
+  const grandTotal = rows.reduce((sum, row) => sum + (parseFloat(row.totalHours) || 0), 0);
+  const cols = ['A','B','C','D','E','F','G','H','I'];
+  const headers = [
+    'Employee',
+    'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN',
+    'Total Hours'
+  ];
+  const xmlRows = [];
+
+  xmlRows.push(
+    `<row r="1" ht="24" customHeight="1">` +
+      headers.map((text, idx) => makeInlineStringCell(`${cols[idx]}1`, text, 1)).join('') +
+    `</row>`
+  );
+
+  rows.forEach((row, idx) => {
+    const r = idx + 2;
+    const values = [
+      row.employee,
+      (row.serviceCells.C || []).join('\n'),
+      (row.serviceCells.D || []).join('\n'),
+      (row.serviceCells.E || []).join('\n'),
+      (row.serviceCells.F || []).join('\n'),
+      (row.serviceCells.G || []).join('\n'),
+      (row.serviceCells.H || []).join('\n'),
+      (row.serviceCells.I || []).join('\n'),
+    ];
+
+    let rowXml = '<row r="' + r + '" ht="88" customHeight="1">';
+    values.forEach((text, cellIdx) => {
+      const styleId = cellIdx >= 1 ? 2 : 0;
+      rowXml += makeInlineStringCell(`${cols[cellIdx]}${r}`, text, styleId);
+    });
+    rowXml += makeNumericCell(`I${r}`, row.totalHours || '', 3);
+    rowXml += '</row>';
+    xmlRows.push(rowXml);
+  });
+
+  const totalRow = rows.length + 3;
+  xmlRows.push(
+    `<row r="${totalRow}" ht="24" customHeight="1">` +
+      makeInlineStringCell(`A${totalRow}`, 'Total Hours', 1) +
+      makeNumericCell(`B${totalRow}`, dayTotals.C ? (dayTotals.C / 60).toFixed(2) : '', 3) +
+      makeNumericCell(`C${totalRow}`, dayTotals.D ? (dayTotals.D / 60).toFixed(2) : '', 3) +
+      makeNumericCell(`D${totalRow}`, dayTotals.E ? (dayTotals.E / 60).toFixed(2) : '', 3) +
+      makeNumericCell(`E${totalRow}`, dayTotals.F ? (dayTotals.F / 60).toFixed(2) : '', 3) +
+      makeNumericCell(`F${totalRow}`, dayTotals.G ? (dayTotals.G / 60).toFixed(2) : '', 3) +
+      makeNumericCell(`G${totalRow}`, dayTotals.H ? (dayTotals.H / 60).toFixed(2) : '', 3) +
+      makeNumericCell(`H${totalRow}`, dayTotals.I ? (dayTotals.I / 60).toFixed(2) : '', 3) +
+      makeNumericCell(`I${totalRow}`, grandTotal ? grandTotal.toFixed(2) : '0.00', 3) +
+    `</row>`
+  );
+
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+  <dimension ref="A1:I${totalRow}"/>
+  <sheetViews><sheetView workbookViewId="0"/></sheetViews>
+  <sheetFormatPr defaultRowHeight="20"/>
+  <cols>
+    <col min="1" max="1" width="20" customWidth="1"/>
+    <col min="2" max="8" width="28" customWidth="1"/>
+    <col min="9" max="9" width="12" customWidth="1"/>
+  </cols>
+  <sheetData>${xmlRows.join('')}</sheetData>
+</worksheet>`;
+}
+
+function buildRosterXlsxStylesXml() {
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+  <fonts count="2">
+    <font><sz val="11"/><color rgb="FF2F2F2C"/><name val="Calibri"/><family val="2"/></font>
+    <font><b/><sz val="11"/><color rgb="FF2F2F2C"/><name val="Calibri"/><family val="2"/></font>
+  </fonts>
+  <fills count="3">
+    <fill><patternFill patternType="none"/></fill>
+    <fill><patternFill patternType="gray125"/></fill>
+    <fill><patternFill patternType="solid"><fgColor rgb="FFF3F1EB"/><bgColor indexed="64"/></patternFill></fill>
+  </fills>
+  <borders count="2">
+    <border><left/><right/><top/><bottom/><diagonal/></border>
+    <border>
+      <left style="thin"><color rgb="FFD9D9D6"/></left>
+      <right style="thin"><color rgb="FFD9D9D6"/></right>
+      <top style="thin"><color rgb="FFD9D9D6"/></top>
+      <bottom style="thin"><color rgb="FFD9D9D6"/></bottom>
+      <diagonal/>
+    </border>
+  </borders>
+  <cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
+  <cellXfs count="4">
+    <xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>
+    <xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
+    <xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>
+    <xf numFmtId="4" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1" applyAlignment="1"><alignment vertical="center"/></xf>
+  </cellXfs>
+  <cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>
+</styleSheet>`;
+}
+
+function buildTimelineXlsxSheetXml() {
+  const { days, rows } = buildTimelineExportRows();
+  const lastDayColIdx = days.length;
+  const totalColIdx = days.length + 1;
+  const totalColName = indexToCol(totalColIdx);
+  const xmlRows = [];
+  const grandTotal = rows.reduce((sum, row) => sum + (parseFloat(row.totalHours) || 0), 0);
+
+  xmlRows.push(
+    `<row r="1" ht="24" customHeight="1">` +
+      makeInlineStringCell('A1', 'Position', 1) +
+      days.map((day, idx) => makeInlineStringCell(`${indexToCol(idx + 1)}1`, day.label, 1)).join('') +
+      makeInlineStringCell(`${totalColName}1`, 'Total Hours', 1) +
+    `</row>`
+  );
+
+  rows.forEach((row, idx) => {
+    const r = idx + 2;
+    let rowXml = `<row r="${r}" ht="88" customHeight="1">`;
+    rowXml += makeInlineStringCell(`A${r}`, row.position);
+    row.cells.forEach((text, cellIdx) => {
+      rowXml += makeInlineStringCell(`${indexToCol(cellIdx + 1)}${r}`, text, 2);
+    });
+    rowXml += makeNumericCell(`${totalColName}${r}`, row.totalHours, 3);
+    rowXml += '</row>';
+    xmlRows.push(rowXml);
+  });
+
+  const totalRow = rows.length + 3;
+  xmlRows.push(
+    `<row r="${totalRow}" ht="24" customHeight="1">` +
+      makeInlineStringCell(`A${totalRow}`, 'Total Hours', 1) +
+      makeNumericCell(`${totalColName}${totalRow}`, grandTotal ? grandTotal.toFixed(2) : '0.00', 3) +
+    `</row>`
+  );
+
+  const colsXml = [
+    '<col min="1" max="1" width="22" customWidth="1"/>',
+    days.length ? `<col min="2" max="${lastDayColIdx + 1}" width="24" customWidth="1"/>` : '',
+    `<col min="${totalColIdx + 1}" max="${totalColIdx + 1}" width="12" customWidth="1"/>`,
+  ].join('');
+
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+  <dimension ref="A1:${totalColName}${totalRow}"/>
+  <sheetViews><sheetView workbookViewId="0"/></sheetViews>
+  <sheetFormatPr defaultRowHeight="20"/>
+  <cols>${colsXml}</cols>
+  <sheetData>${xmlRows.join('')}</sheetData>
+</worksheet>`;
+}
+
+function buildTimelineWorkbookFiles() {
+  const createdAt = new Date().toISOString();
+  return [
+    {
+      name: '[Content_Types].xml',
+      text: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>
+  <Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
+  <Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>
+  <Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>
+  <Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/>
+</Types>`,
+    },
+    {
+      name: '_rels/.rels',
+      text: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>
+  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/>
+  <Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties" Target="docProps/app.xml"/>
+</Relationships>`,
+    },
+    {
+      name: 'docProps/app.xml',
+      text: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties" xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes">
+  <Application>Shift Planner</Application>
+  <HeadingPairs><vt:vector size="2" baseType="variant"><vt:variant><vt:lpstr>Worksheets</vt:lpstr></vt:variant><vt:variant><vt:i4>1</vt:i4></vt:variant></vt:vector></HeadingPairs>
+  <TitlesOfParts><vt:vector size="1" baseType="lpstr"><vt:lpstr>TIMELINE</vt:lpstr></vt:vector></TitlesOfParts>
+</Properties>`,
+    },
+    {
+      name: 'docProps/core.xml',
+      text: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:dcmitype="http://purl.org/dc/dcmitype/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <dc:creator>Shift Planner</dc:creator>
+  <cp:lastModifiedBy>Shift Planner</cp:lastModifiedBy>
+  <dcterms:created xsi:type="dcterms:W3CDTF">${createdAt}</dcterms:created>
+  <dcterms:modified xsi:type="dcterms:W3CDTF">${createdAt}</dcterms:modified>
+</cp:coreProperties>`,
+    },
+    {
+      name: 'xl/workbook.xml',
+      text: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+  <sheets><sheet name="TIMELINE" sheetId="1" r:id="rId1"/></sheets>
+</workbook>`,
+    },
+    {
+      name: 'xl/_rels/workbook.xml.rels',
+      text: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>
+  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+</Relationships>`,
+    },
+    {
+      name: 'xl/styles.xml',
+      text: buildRosterXlsxStylesXml(),
+    },
+    {
+      name: 'xl/worksheets/sheet1.xml',
+      text: buildTimelineXlsxSheetXml(),
+    },
+  ];
+}
+
+function buildRosterWorkbookFiles() {
+  const createdAt = new Date().toISOString();
+  return [
+    {
+      name: '[Content_Types].xml',
+      text: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>
+  <Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
+  <Override PartName="/xl/worksheets/sheet2.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
+  <Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>
+  <Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>
+  <Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/>
+</Types>`,
+    },
+    {
+      name: '_rels/.rels',
+      text: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>
+  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/>
+  <Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties" Target="docProps/app.xml"/>
+</Relationships>`,
+    },
+    {
+      name: 'docProps/app.xml',
+      text: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties" xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes">
+  <Application>Shift Planner</Application>
+  <HeadingPairs><vt:vector size="2" baseType="variant"><vt:variant><vt:lpstr>Worksheets</vt:lpstr></vt:variant><vt:variant><vt:i4>2</vt:i4></vt:variant></vt:vector></HeadingPairs>
+  <TitlesOfParts><vt:vector size="2" baseType="lpstr"><vt:lpstr>ROSTER</vt:lpstr><vt:lpstr>EMPLOYEES</vt:lpstr></vt:vector></TitlesOfParts>
+</Properties>`,
+    },
+    {
+      name: 'docProps/core.xml',
+      text: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:dcmitype="http://purl.org/dc/dcmitype/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <dc:creator>Shift Planner</dc:creator>
+  <cp:lastModifiedBy>Shift Planner</cp:lastModifiedBy>
+  <dcterms:created xsi:type="dcterms:W3CDTF">${createdAt}</dcterms:created>
+  <dcterms:modified xsi:type="dcterms:W3CDTF">${createdAt}</dcterms:modified>
+</cp:coreProperties>`,
+    },
+    {
+      name: 'xl/workbook.xml',
+      text: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+  <sheets><sheet name="ROSTER" sheetId="1" r:id="rId1"/><sheet name="EMPLOYEES" sheetId="2" r:id="rId2"/></sheets>
+</workbook>`,
+    },
+    {
+      name: 'xl/_rels/workbook.xml.rels',
+      text: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>
+  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet2.xml"/>
+  <Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+</Relationships>`,
+    },
+    {
+      name: 'xl/styles.xml',
+      text: buildRosterXlsxStylesXml(),
+    },
+    {
+      name: 'xl/worksheets/sheet1.xml',
+      text: buildRosterXlsxSheetXml(),
+    },
+    {
+      name: 'xl/worksheets/sheet2.xml',
+      text: buildEmployeeXlsxSheetXml(),
+    },
+  ];
+}
+
+function exportRosterExcel() {
+  if (!state.rows.length) {
+    alert('There are no positions to export.');
+    return;
+  }
+
+  if (dayCount() > 7) {
+    alert('The roster format is a weekly sheet, so only the first 7 days from the start date will be exported.');
+  }
+
+  const files = buildRosterWorkbookFiles();
+  const zipBytes = createZip(files);
+  const filename = `roster_${formatIsoForFilename(state.dateStart)}_${formatIsoForFilename(state.dateEnd)}.xlsx`;
+  downloadBlob(
+    new Blob([zipBytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }),
+    filename
+  );
+}
+
+function exportTimelineExcel() {
+  if (!state.rows.length) {
+    alert('There are no positions to export.');
+    return;
+  }
+
+  const files = buildTimelineWorkbookFiles();
+  const zipBytes = createZip(files);
+  const filename = `timeline_${formatIsoForFilename(state.dateStart)}_${formatIsoForFilename(state.dateEnd)}.xlsx`;
+  downloadBlob(
+    new Blob([zipBytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }),
+    filename
+  );
+}
+
+let pendingPrintState = null;
+
+function restoreAfterPrint() {
+  if (!pendingPrintState) return;
+  document.getElementById('print-sheet').innerHTML = '';
+  pendingPrintState = null;
+}
+
+window.addEventListener('afterprint', restoreAfterPrint);
+
+function downloadRosterPdf() {
+  if (!state.rows.length) {
+    alert('There are no positions to print.');
+    return;
+  }
+
+  closeDataMenu();
+  closeClearMenu();
+
+  if (!pendingPrintState) {
+    pendingPrintState = { active: true };
+  }
+
+  document.getElementById('print-sheet').innerHTML = buildPrintSheetHtml();
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      window.print();
+      setTimeout(restoreAfterPrint, 1000);
+    });
+  });
+}
+
+function applyImportedPayload(payload, targetDateIso = '') {
+  if (!payload || typeof payload !== 'object') {
+    throw new Error('Invalid JSON format.');
+  }
+
+  const importedConfig = payload.config;
+  const importedState = payload.state;
+
+  if (!importedConfig || typeof importedConfig !== 'object' || !importedState || typeof importedState !== 'object') {
+    throw new Error('Missing config or state data.');
+  }
+
+  if (typeof importedConfig.slotMin !== 'number' ||
+      typeof importedConfig.startHourMin !== 'number' ||
+      typeof importedConfig.endHourMin !== 'number' ||
+      typeof importedConfig.cellW !== 'number') {
+    throw new Error('Invalid config values.');
+  }
+
+  if (!Array.isArray(importedState.rows)) {
+    throw new Error('Invalid rows data.');
+  }
+
+  config.slotMin = importedConfig.slotMin;
+  config.startHourMin = importedConfig.startHourMin;
+  config.endHourMin = importedConfig.endHourMin;
+  config.cellW = Math.max(MIN_CELL_W, Math.min(MAX_CELL_W, importedConfig.cellW));
+
+  const importedDateStart = typeof importedState.dateStart === 'string' ? importedState.dateStart : '';
+  const importedDateEnd = typeof importedState.dateEnd === 'string' ? importedState.dateEnd : '';
+  const importedStartDate = parseISO(importedDateStart) || new Date();
+  const importedEndDate = parseISO(importedDateEnd) || importedStartDate;
+  const importedLength = Math.max(1, Math.round((importedEndDate - importedStartDate) / 86400000) + 1);
+  const requestedTargetDate = parseISO(targetDateIso);
+  const targetAnchorDate = requestedTargetDate || importedStartDate;
+  const targetWeekRange = getWeekRangeFromDate(targetAnchorDate);
+  const targetAnchorOffset = Math.round((targetAnchorDate - targetWeekRange.start) / 86400000);
+  let droppedShiftCount = 0;
+
+  state = {
+    title: typeof importedState.title === 'string' ? importedState.title : 'Shift Planner',
+    viewMode: importedState.viewMode === 'table' ? 'table' : 'timeline',
+    dateStart: toISO(targetWeekRange.start),
+    dateEnd: toISO(targetWeekRange.end),
+    dayTargets: normalizeDayTargets(importedState.dayTargets),
+    rows: importedState.rows.map((row, rowIdx) => ({
+      id: typeof row.id === 'string' ? row.id : uid('r'),
+      name: typeof row.name === 'string' ? row.name : `Position ${rowIdx + 1}`,
+      color: typeof row.color === 'number' ? Math.max(0, Math.min(COLORS.length - 1, row.color)) : rowIdx % COLORS.length,
+      shifts: Array.isArray(row.shifts)
+        ? row.shifts
+            .map((shift) => {
+              if (typeof shift !== 'object' || shift == null) return null;
+              if (typeof shift.startMin !== 'number' || typeof shift.endMin !== 'number') return null;
+              const sourceDayIdx = typeof shift.dayIdx === 'number' ? shift.dayIdx : 0;
+              const targetDayIdx = sourceDayIdx + targetAnchorOffset;
+              if (targetDayIdx < 0 || targetDayIdx > 6) {
+                droppedShiftCount++;
+                return null;
+              }
+              return {
+                id: typeof shift.id === 'string' ? shift.id : uid('s'),
+                dayIdx: targetDayIdx,
+                workerName: typeof shift.workerName === 'string' ? shift.workerName : '',
+                startMin: shift.startMin,
+                endMin: shift.endMin,
+              };
+            })
+            .filter(Boolean)
+        : [],
+    })),
+  };
+  syncIdCounterFromState();
+
+  titleEl.textContent = state.title;
+  document.title = state.title;
+  dateStartEl.value = state.dateStart;
+  dateEndEl.value = state.dateEnd;
+  updateDateSpan();
+  renderApp();
+  saveSettings();
+
+  if (droppedShiftCount > 0) {
+    alert(`Imported ${importedLength}-day schedule into the week of ${toISO(targetWeekRange.start)}. ${droppedShiftCount} shift(s) were outside this week and were skipped.`);
+  }
+}
+
+function addRow() {
+  state.rows.push({
+    id: uid('r'),
+    name: 'New Position',
+    color: state.rows.length % COLORS.length,
+    shifts: [],
+  });
+  renderApp();
+  saveSettings();
+  requestAnimationFrame(() => {
+    const all = document.querySelectorAll('.row-name');
+    const last = all[all.length - 1];
+    if (last) {
+      last.focus();
+      const range = document.createRange();
+      range.selectNodeContents(last);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+    }
+  });
+}
+
+document.getElementById('btn-add-row').addEventListener('click', addRow);
+document.getElementById('btn-view-timeline').addEventListener('click', () => {
+  if (state.viewMode === 'timeline') return;
+  state.viewMode = 'timeline';
+  renderApp();
+  saveSettings();
+});
+document.getElementById('btn-view-table').addEventListener('click', () => {
+  if (state.viewMode === 'table') return;
+  state.viewMode = 'table';
+  renderApp();
+  saveSettings();
+});
+document.getElementById('btn-clear-menu').addEventListener('click', (e) => {
+  e.stopPropagation();
+  toggleClearMenu();
+});
+document.getElementById('btn-data-menu').addEventListener('click', (e) => {
+  e.stopPropagation();
+  toggleDataMenu();
+});
+document.getElementById('btn-download-pdf').addEventListener('click', downloadRosterPdf);
+document.getElementById('btn-export-json').addEventListener('click', () => {
+  closeDataMenu();
+  exportCurrentStateAsJson();
+});
+document.getElementById('btn-export-roster').addEventListener('click', () => {
+  closeDataMenu();
+  exportRosterExcel();
+});
+document.getElementById('btn-import-json').addEventListener('click', () => {
+  closeDataMenu();
+  document.getElementById('json-import-input').click();
+});
+
+document.addEventListener('click', (e) => {
+  const menu = document.getElementById('data-menu');
+  if (!menu.contains(e.target)) closeDataMenu();
+  const clearMenu = document.getElementById('clear-menu');
+  if (!clearMenu.contains(e.target)) closeClearMenu();
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    closeDataMenu();
+    closeClearMenu();
+    return;
+  }
+
+  const isUndoKey = e.key.toLowerCase() === 'z' && (e.metaKey || e.ctrlKey) && !e.altKey;
+  if (!isUndoKey || isEditableTarget(e.target)) return;
+
+  e.preventDefault();
+  if (e.shiftKey) {
+    redoPlannerChange();
+  } else {
+    undoPlannerChange();
+  }
+});
+
+document.getElementById('json-import-input').addEventListener('change', async (e) => {
+  const file = e.target.files && e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+
+  try {
+    const text = await file.text();
+    const payload = JSON.parse(text);
+    const suggestedDate = state.dateStart || toISO(getWeekRangeFromDate(new Date()).start);
+    const targetDateInput = prompt('Import starting from which date? Enter YYYY-MM-DD.', suggestedDate);
+    if (targetDateInput === null) return;
+    const normalizedTargetDate = targetDateInput.trim();
+    if (!parseISO(normalizedTargetDate)) {
+      throw new Error('Please enter a valid date in YYYY-MM-DD format.');
+    }
+    applyImportedPayload(payload, normalizedTargetDate);
+  } catch (err) {
+    alert(err instanceof Error ? err.message : 'Failed to load the JSON file.');
+  }
+});
+
+document.getElementById('btn-clear').addEventListener('click', () => {
+  closeClearMenu();
+  if (confirm('Clear all shifts? (Positions will be kept.)')) {
+    state.rows.forEach(r => r.shifts = []);
+    renderApp();
+    saveSettings();
+  }
+});
+
+document.getElementById('btn-clear-names').addEventListener('click', () => {
+  closeClearMenu();
+  const hasAssignedNames = state.rows.some((row) =>
+    row.shifts.some((shift) => (shift.workerName || '').trim())
+  );
+  if (!hasAssignedNames) {
+    alert('There are no assigned names to clear.');
+    return;
+  }
+
+  if (confirm('Clear all assigned names? (Shift times will be kept.)')) {
+    state.rows.forEach((row) => {
+      row.shifts.forEach((shift) => { shift.workerName = ''; });
+    });
+    renderApp();
+    saveSettings();
+  }
+});
+
+/* ===================== Settings panel ===================== */
+const overlay = document.getElementById('overlay');
+const settingsPanel = document.getElementById('settings-panel');
+const settingSlot = document.getElementById('setting-slot');
+const settingStart = document.getElementById('setting-start');
+const settingEnd = document.getElementById('setting-end');
+
+function openSettings() {
+  settingSlot.value = String(config.slotMin);
+  settingStart.value = minToTimeDisplay(config.startHourMin);
+  if (config.endHourMin >= 24 * 60) {
+    settingEnd.value = '23:59';
+  } else {
+    settingEnd.value = minToTimeDisplay(config.endHourMin);
+  }
+  overlay.classList.add('visible');
+  settingsPanel.classList.add('visible');
+}
+
+function closeSettings() {
+  overlay.classList.remove('visible');
+  settingsPanel.classList.remove('visible');
+}
+
+document.getElementById('btn-settings').addEventListener('click', openSettings);
+document.getElementById('btn-settings-close').addEventListener('click', closeSettings);
+overlay.addEventListener('click', closeSettings);
+
+document.getElementById('btn-settings-apply').addEventListener('click', () => {
+  const newSlot = parseInt(settingSlot.value, 10);
+  const newStartMin = timeToMin(settingStart.value);
+  let newEndMin = timeToMin(settingEnd.value);
+  if (settingEnd.value === '23:59') newEndMin = 24 * 60;
+  if (newEndMin === 0) newEndMin = 24 * 60;
+
+  if (newEndMin <= newStartMin) {
+    alert('The end time must be later than the start time.');
+    return;
+  }
+
+  const rangeMin = newEndMin - newStartMin;
+  if (rangeMin % newSlot !== 0) {
+    const adjusted = newStartMin + Math.floor(rangeMin / newSlot) * newSlot;
+    if (adjusted <= newStartMin) {
+      alert(`This time range cannot be divided using the selected grid size (${newSlot} minutes).`);
+      return;
+    }
+    newEndMin = adjusted;
+  }
+
+  config.slotMin = newSlot;
+  config.startHourMin = newStartMin;
+  config.endHourMin = newEndMin;
+
+  state.rows.forEach(row => {
+    row.shifts = row.shifts.map(s => {
+      let ns = Math.max(config.startHourMin, s.startMin);
+      let ne = Math.min(config.endHourMin, s.endMin);
+      ns = config.startHourMin + Math.round((ns - config.startHourMin) / config.slotMin) * config.slotMin;
+      ne = config.startHourMin + Math.round((ne - config.startHourMin) / config.slotMin) * config.slotMin;
+      if (ne <= ns) return null;
+      return { ...s, startMin: ns, endMin: ne };
+    }).filter(Boolean);
+  });
+
+  saveSettings();
+  renderApp();
+  closeSettings();
+});
+
+document.getElementById('btn-settings-reset').addEventListener('click', () => {
+  if (!confirm('Reset settings to the defaults?')) return;
+  config.slotMin = 15;
+  config.startHourMin = 8 * 60;
+  config.endHourMin = 24 * 60;
+  config.cellW = DEFAULT_CELL_W;
+  saveSettings();
+  openSettings();
+  renderApp();
+});
+
+/* ===================== Init ===================== */
+renderApp();
+
+setInterval(saveSettings, 3000);
+window.addEventListener('beforeunload', saveSettings);
+</script>
+
+</body>
+</html>
