@@ -38,6 +38,7 @@ export function PlannerFrame({
   const [busy, setBusy] = useState(false);
   const [panelOpen, setPanelOpen] = useState(false);
   const autoSaveTimerRef = useRef<number | null>(null);
+  const pendingSnapshotRef = useRef<string>("");
   const lastSavedSnapshotRef = useRef<string>(initialSnapshot ? JSON.stringify(initialSnapshot) : "");
 
   const iframeSrc = useMemo(() => {
@@ -156,6 +157,11 @@ export function PlannerFrame({
       setTitle(nextTitle);
       setShareMode(nextShareMode);
       lastSavedSnapshotRef.current = snapshotText;
+      pendingSnapshotRef.current = "";
+      if (autoSaveTimerRef.current) {
+        window.clearTimeout(autoSaveTimerRef.current);
+        autoSaveTimerRef.current = null;
+      }
       setTone("success");
       setStatus("Changes saved.");
     } catch (error) {
@@ -187,16 +193,21 @@ export function PlannerFrame({
       try {
         const snapshotText = await requestSnapshot();
         if (snapshotText !== lastSavedSnapshotRef.current && !busy) {
-          if (autoSaveTimerRef.current) {
-            window.clearTimeout(autoSaveTimerRef.current);
+          if (snapshotText !== pendingSnapshotRef.current) {
+            pendingSnapshotRef.current = snapshotText;
+
+            if (autoSaveTimerRef.current) {
+              window.clearTimeout(autoSaveTimerRef.current);
+            }
+
+            setTone("default");
+            setStatus("Waiting to auto-save...");
+
+            autoSaveTimerRef.current = window.setTimeout(() => {
+              autoSaveTimerRef.current = null;
+              void autoSaveCurrentPlanner();
+            }, 3000);
           }
-
-          setTone("default");
-          setStatus("Waiting to auto-save...");
-
-          autoSaveTimerRef.current = window.setTimeout(() => {
-            void autoSaveCurrentPlanner();
-          }, 3000);
         }
       } catch {
         // Ignore polling errors while the iframe is still booting.
