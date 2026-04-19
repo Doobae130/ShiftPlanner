@@ -1,5 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { PlannerFrame } from "@/components/planner-frame";
+import { SignOutButton } from "@/components/sign-out-button";
 import { hasSupabaseEnv } from "@/lib/env";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -57,6 +58,13 @@ export default async function PlannerEditorPage({ params }: PlannerEditorPagePro
         <div>
           <div className="eyebrow">Editor</div>
           <h1 className="section-title">{planner.title}</h1>
+        </div>
+        <div className="account-chip">
+          <div className="account-chip-text">
+            <span className="micro">Signed in as</span>
+            <strong>{user.email ?? "Unknown user"}</strong>
+          </div>
+          <SignOutButton />
         </div>
       </header>
 
